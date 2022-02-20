@@ -2,13 +2,11 @@ package application
 
 import (
 	"github.com/brice-74/golang-base-api/pkg/jsonlog"
-	"github.com/go-redis/redis/v8"
 )
 
 type Application struct {
 	Config Config
 	Models Models
-	Redis  redis.Client
 	Logger jsonlog.Logger
 }
 

@@ -1,7 +1,6 @@
 SHELL := /bin/bash
 
 docker_postgres_container_name_test := "base-database-test"
-docker_redis_container_name_test := "base-redis-test"
 
 docker_api_image_name := "base-api-dev"
 docker_api_container_name := "base-api-dev"
@@ -88,7 +87,7 @@ qa/test:
 	@echo 'Running tests...'
 	-@docker-compose -f docker-compose.test.yml run --rm apitest sh -c "sleep 10 && migrate -path ./migrations -database \$$DATABASE_URL up && go test -p 1 -v -vet=off -run \"$(func)\" ./.../$(pkg)"
 	@echo 'Stop & Remove db services...'
-	@docker stop $(docker_postgres_container_name_test) $(docker_redis_container_name_test) && docker rm $(docker_postgres_container_name_test) $(docker_redis_container_name_test)
+	@docker stop $(docker_postgres_container_name_test) && docker rm $(docker_postgres_container_name_test)
 
 ## qa/coverage: run automated tests and create coverage report
 .PHONY: qa/coverage
@@ -96,7 +95,7 @@ qa/coverage:
 	@echo 'Running tests and creating coverage report...'
 	-@docker-compose -f docker-compose.test.yml run --rm apitest sh -c "sleep 10 && migrate -path ./migrations -database \$$DATABASE_URL up && go test -p 1 -coverprofile=coverage.txt -covermode=atomic -v -vet=off ./..."
 	@echo 'Stop & Remove db services...'
-	@docker stop $(docker_postgres_container_name_test) $(docker_redis_container_name_test) && docker rm $(docker_postgres_container_name_test) $(docker_redis_container_name_test)
+	@docker stop $(docker_postgres_container_name_test) && docker rm $(docker_postgres_container_name_test)
 
 ## watch/coverage: watch coverage report on navigator
 .PHONY: qa/coverage
