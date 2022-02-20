@@ -1,0 +1,49 @@
+scalar Time
+
+type Query {
+
+}
+
+type UserAccount {
+  id: ID!    
+	createdAt: Time!
+	updatedAt: Time!
+	active: Boolean! 
+	email: String!  
+	password: String!   
+	roles: [UserAccountRole!]!    
+	profilName: String!
+	shortId: String!
+}
+
+type Tokens {
+  access: String!
+  refresh: String!
+}
+
+enum UserAccountRole {
+  ROLE_ANONYMOUS
+  ROLE_USER
+}
+
+type Mutation {
+  # registerUserAccount: add a new user.
+  registerUserAccount(input: RegisterUserAccountInput!): UserAccount!
+   # loginUserAccount: authenticate a user.
+  loginUserAccount(email: String!, password: String!, agent: UserAgentInput!): Tokens!
+  # refreshUserAccount: refresh user authentication.
+  refreshUserAccount(agent: UserAgentInput!): Tokens!
+}
+
+input RegisterUserAccountInput {
+  email: String!
+  password: String!
+  profilName: String!
+}
+
+input UserAgentInput {
+  id: ID!
+  ip: String!
+  name: String!
+  location: String!
+}

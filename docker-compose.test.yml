@@ -1,0 +1,30 @@
+services:
+  apitest:
+    container_name: base-api-test
+    image: base-api
+    build:
+      context: .
+      dockerfile: Dockerfile_test
+    volumes:
+      - ./:/api
+    links:
+      - databasetest
+    networks:
+      - test
+    depends_on:
+      - databasetest
+    environment:
+      - DATABASE_URL=postgres://test:test@base-database-test/test?sslmode=disable
+
+  databasetest:
+    container_name: base-database-test
+    image: postgres
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+      - POSTGRES_DB=test
+    networks:
+      - test
+
+networks:
+  test:

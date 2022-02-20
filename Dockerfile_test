@@ -1,0 +1,12 @@
+FROM golang:1.17-alpine
+
+WORKDIR /api
+COPY . .
+
+RUN apk --no-cache add curl build-base
+
+# Install golang-migrate
+RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.14.1/migrate.linux-amd64.tar.gz | tar xvz && \
+  mv migrate.linux-amd64 $GOPATH/bin/migrate
+
+EXPOSE ${PORT} 

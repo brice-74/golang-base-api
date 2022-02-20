@@ -1,0 +1,24 @@
+version: "3.9"
+services:
+  api:
+    container_name: base-api-dev
+    image: base-api
+    build:
+      context: .
+      dockerfile: Dockerfile_reflex
+    volumes:
+      - ./:/api
+    env_file:
+      - .env.dev
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@base-database-dev/${POSTGRES_DB}?sslmode=disable
+    security_opt:
+      - "seccomp:unconfined"
+    cap_add:
+      - SYS_PTRACE
+    tty: true
+    ports:
+      - ${PORT}:${PORT}
+    depends_on:
+      - database
+    command: reflex -s -r '\.(go|graphql)$$' -- sh -c "go build -o ./tmp/api ./cmd/api && ./tmp/api"
