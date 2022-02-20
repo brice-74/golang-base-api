@@ -24,14 +24,17 @@ func (app *Application) ServerErrorResponse(w http.ResponseWriter, r *http.Reque
 	app.ErrorResponse(w, r, http.StatusInternalServerError, message)
 }
 
-// NotFoundResponse returns a 404 error to the client.
-func (app *Application) NotFoundResponse(w http.ResponseWriter, r *http.Request) {
+func (app *Application) NotFoundResponseErr(w http.ResponseWriter, r *http.Request, err error) {
 	message := "the requested resource could not be found"
+	if err != nil {
+		message = err.Error()
+	}
 	app.ErrorResponse(w, r, http.StatusNotFound, message)
 }
 
-// NotFoundResponse returns a 404 error to the client with custom message.
-func (app *Application) NotFoundResponseMsg(w http.ResponseWriter, r *http.Request, message string) {
+// NotFoundResponse returns a 404 error to the client.
+func (app *Application) NotFoundResponse(w http.ResponseWriter, r *http.Request) {
+	message := "the requested resource could not be found"
 	app.ErrorResponse(w, r, http.StatusNotFound, message)
 }
 
@@ -52,35 +55,31 @@ func (app *Application) FailedValidationResponse(w http.ResponseWriter, r *http.
 }
 
 // InvalidAuthenticationTokenResponse returns a 401 error indicating the token is not valid.
-func (app *Application) InvalidAuthenticationTokenResponse(w http.ResponseWriter, r *http.Request) {
+func (app *Application) InvalidAuthenticationTokenResponse(w http.ResponseWriter, r *http.Request, err error) {
 	// Indicates to the client we expect a bearer token.
 	w.Header().Set("Authorization", "Bearer")
-
 	message := "invalid or missing authentication token"
-	app.ErrorResponse(w, r, http.StatusUnauthorized, message)
-}
-
-// InvalidAuthenticationTokenResponse returns a 401 error indicating the token is not valid with custom message.
-func (app *Application) InvalidAuthenticationTokenResponseMsg(w http.ResponseWriter, r *http.Request, message string) {
-	// Indicates to the client we expect a bearer token.
-	w.Header().Set("Authorization", "Bearer")
+	if err != nil {
+		message = err.Error()
+	}
 	app.ErrorResponse(w, r, http.StatusUnauthorized, message)
 }
 
 // AuthenticationRequiredResponse returns a 401 response to the client.
-func (app *Application) AuthenticationRequiredResponse(w http.ResponseWriter, r *http.Request) {
+func (app *Application) AuthenticationRequiredResponse(w http.ResponseWriter, r *http.Request, err error) {
 	message := "you must be authenticated to access this resource"
+	if err != nil {
+		message = err.Error()
+	}
 	app.ErrorResponse(w, r, http.StatusUnauthorized, message)
 }
 
 // ForbiddenResponse returns a 403 response to the client.
-func (app *Application) ForbiddenResponse(w http.ResponseWriter, r *http.Request) {
+func (app *Application) ForbiddenResponse(w http.ResponseWriter, r *http.Request, err error) {
 	message := "your don't have the right to access this resource"
-	app.ErrorResponse(w, r, http.StatusForbidden, message)
-}
-
-// ForbiddenResponse returns a 403 response to the client with custom message.
-func (app *Application) ForbiddenResponseMsg(w http.ResponseWriter, r *http.Request, message string) {
+	if err != nil {
+		message = err.Error()
+	}
 	app.ErrorResponse(w, r, http.StatusForbidden, message)
 }
 

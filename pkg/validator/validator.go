@@ -7,7 +7,7 @@ import (
 
 var (
 	SpecialCharRX = func(min, max int) *regexp.Regexp {
-		return regexp.MustCompile(`^(.*?[\*\.!@#\$%\^&\(\)\{\}\[\]:;<>,.\?\\/~_\+\-=\|]){1,}.*$`)
+		return regexp.MustCompile(`^(.*?[\*\.!@#\$%\^&\(\)\{\}\[\]:;<>,.\?\\/~_\+\-=\|]){` + fmt.Sprint(min) + `,` + fmt.Sprint(max) + `}.*$`)
 	}
 	DigitRX = func(min, max int) *regexp.Regexp {
 		return regexp.MustCompile(fmt.Sprintf("^(.*?[0-9]){%d,%d}.*$", min, max))
@@ -22,10 +22,8 @@ var (
 )
 
 type Validator struct {
-	Errors Errors
-	tmp    struct {
-		keyError string
-	}
+	Errors   Errors
+	KeyError string
 }
 
 type Errors map[string][]string
@@ -41,23 +39,16 @@ func (v *Validator) Valid() bool {
 	return len(v.Errors) == 0
 }
 
-func (v *Validator) SetTmpKeyError(keyError string) *Validator {
-	v.tmp.keyError = keyError
-	return v
-}
-
 func (v *Validator) AddError(message string) *Validator {
-	v.Errors[v.tmp.keyError] = append(v.Errors[v.tmp.keyError], message)
+	v.Errors[v.KeyError] = append(v.Errors[v.KeyError], message)
 	return nil
 }
 
 // Check adds an error message to the map only if a validation check is not 'ok'.
-func (v *Validator) Check(ok bool, message string) bool {
+func (v *Validator) Check(ok bool, message string) {
 	if !ok {
 		v.AddError(message)
-		return false
 	}
-	return true
 }
 
 // In returns true if a specific value is in a list of strings.

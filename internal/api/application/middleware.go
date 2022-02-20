@@ -144,7 +144,7 @@ func (app *Application) Authenticate(next http.Handler) http.Handler {
 		// Split Authorization header to recover token
 		headerParts := strings.Split(authorizationHeader, " ")
 		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-			app.InvalidAuthenticationTokenResponse(w, r)
+			app.InvalidAuthenticationTokenResponse(w, r, nil)
 			return
 		}
 		// Check Grant-Type header to know if is a resfresh token
@@ -163,13 +163,13 @@ func (app *Application) Authenticate(next http.Handler) http.Handler {
 		// Check token is valid and up to date
 		token, err := VerifyToken(headerParts[1], secret)
 		if err != nil {
-			app.InvalidAuthenticationTokenResponseMsg(w, r, err.Error())
+			app.InvalidAuthenticationTokenResponse(w, r, err)
 			return
 		}
 		// Extract userID claim in the token
 		claims, err := ExtractTokenMetadata(token, []JwtClaimKey{UserIdClaim, UserAgentIdClaim})
 		if err != nil {
-			app.InvalidAuthenticationTokenResponseMsg(w, r, err.Error())
+			app.InvalidAuthenticationTokenResponse(w, r, err)
 			return
 		}
 
@@ -177,7 +177,7 @@ func (app *Application) Authenticate(next http.Handler) http.Handler {
 		if err != nil {
 			switch {
 			case errors.Is(err, user.ErrNotFound):
-				app.NotFoundResponseMsg(w, r, err.Error())
+				app.NotFoundResponseErr(w, r, err)
 			default:
 				app.ServerErrorResponse(w, r, err)
 			}

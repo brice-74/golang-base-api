@@ -131,7 +131,7 @@ func TestInvalidAuthenticationTokenResponse(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 
-	app.InvalidAuthenticationTokenResponse(w, r)
+	app.InvalidAuthenticationTokenResponse(w, r, nil)
 
 	got := w.Body.String()
 	expected := `{"error":"invalid or missing authentication token"}`
@@ -153,7 +153,7 @@ func TestAuthenticationRequiredResponse(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 
-	app.AuthenticationRequiredResponse(w, r)
+	app.AuthenticationRequiredResponse(w, r, nil)
 
 	got := w.Body.String()
 	expected := `{"error":"you must be authenticated to access this resource"}`
@@ -171,7 +171,7 @@ func TestForbiddenResponse(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 
-	app.ForbiddenResponse(w, r)
+	app.ForbiddenResponse(w, r, nil)
 
 	got := w.Body.String()
 	expected := `{"error":"your don't have the right to access this resource"}`

@@ -11,7 +11,6 @@ import (
 type AuthError error
 
 var (
-	TokenExpired AuthError = errors.New("token expired")
 	InvalidToken AuthError = errors.New("Invalid token")
 )
 
@@ -20,6 +19,7 @@ type JwtClaimKey string
 const (
 	UserIdClaim      JwtClaimKey = "user_id"
 	UserAgentIdClaim JwtClaimKey = "user_agent_id"
+	ExpireClaim      JwtClaimKey = "exp"
 )
 
 type TokensDetails struct {
@@ -45,7 +45,7 @@ func (app *Application) CreateTokens(userID string, userAgentID string) (*Tokens
 	var atClaims = jwt.MapClaims{}
 	atClaims[string(UserAgentIdClaim)] = userAgentID
 	atClaims[string(UserIdClaim)] = userID
-	atClaims["exp"] = time.Now().Add(accessDuration).Unix()
+	atClaims[string(ExpireClaim)] = time.Now().Add(accessDuration).Unix()
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
 	td.AccessToken, err = at.SignedString([]byte(app.Config.JWT.Access.Secret))
 	if err != nil {
@@ -55,7 +55,7 @@ func (app *Application) CreateTokens(userID string, userAgentID string) (*Tokens
 	var rtClaims = jwt.MapClaims{}
 	rtClaims[string(UserAgentIdClaim)] = userAgentID
 	rtClaims[string(UserIdClaim)] = userID
-	rtClaims["exp"] = td.RefreshExp
+	rtClaims[string(ExpireClaim)] = td.RefreshExp
 	rt := jwt.NewWithClaims(jwt.SigningMethodHS256, rtClaims)
 	td.RefreshToken, err = rt.SignedString([]byte(app.Config.JWT.Refresh.Secret))
 	if err != nil {
@@ -67,8 +67,8 @@ func (app *Application) CreateTokens(userID string, userAgentID string) (*Tokens
 // Make sure that the token method conform to "SigningMethodHMAC" and is up to date
 func VerifyToken(bearer string, secret string) (*jwt.Token, error) {
 	token, err := jwt.Parse(string(bearer), func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok || token.Method.Alg() != "HS256" {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Method.Alg())
 		}
 		return []byte(secret), nil
 	})
@@ -76,7 +76,7 @@ func VerifyToken(bearer string, secret string) (*jwt.Token, error) {
 		return nil, err
 	}
 	if !token.Valid {
-		return nil, TokenExpired
+		return nil, InvalidToken
 	}
 	return token, nil
 }
