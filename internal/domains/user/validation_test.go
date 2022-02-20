@@ -71,8 +71,7 @@ func TestValidatePasswordEntry(t *testing.T) {
 
 		got := v.Errors[errKey]
 
-		expect := make(validator.Errors)[errKey]
-		expect = []string{
+		expect := []string{
 			"must be provided",
 			"must have minimum of 8 characters",
 			"must have minimum of 1 lowercase",
@@ -129,8 +128,7 @@ func TestValidateEmailEntry(t *testing.T) {
 
 		got := v.Errors[errKey]
 
-		expect := make(validator.Errors)[errKey]
-		expect = []string{
+		expect := []string{
 			"must be provided",
 			"must be a valid address",
 		}

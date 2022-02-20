@@ -7,12 +7,10 @@ import (
 )
 
 const (
-	errServer             = "ServerError"
 	errInvalidCredentials = "InvalidCredentials"
 	errUnauthorized       = "Unauthorized"
 	errValidator          = "ValidatorError"
 	errDatabaseOperation  = "DatabaseOperationError"
-	errNotAuthenticated   = "NotAuthenticatedError"
 	errNotFound           = "NotFoundError"
 )
 
