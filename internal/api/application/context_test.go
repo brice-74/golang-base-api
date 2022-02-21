@@ -15,9 +15,6 @@ func TestContextWithUser(t *testing.T) {
 		User: &user.User{
 			ID: "1234",
 		},
-		Token: &TokenCtx{
-			IsAccess: true,
-		},
 		SessionID: "1234",
 	}
 
@@ -47,9 +44,6 @@ func TestUserFromContext(t *testing.T) {
 		u := &UserCtx{
 			User: &user.User{
 				ID: "1234",
-			},
-			Token: &TokenCtx{
-				IsAccess: true,
 			},
 			SessionID: "1234",
 		}
