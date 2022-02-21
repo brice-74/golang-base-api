@@ -186,6 +186,16 @@ func (r Root) RefreshUserAccount(_ context.Context, params RefreshUserAccountPar
 		return nil, resolverErrUnauthorized(errors.New("Invalid session"))
 	}
 
+	u, err := r.App.Models.User.GetById(claims[application.UserIdClaim])
+	if err != nil {
+		switch {
+		case errors.Is(err, user.ErrNotFound):
+			return nil, resolverErrNotFound(err)
+		default:
+			return nil, resolverErrDatabaseOperation(err)
+		}
+	}
+
 	if err = r.App.Models.User.InsertOrUpdateUserSession(
 		&user.Session{
 			ID:            string(params.Agent.ID),
@@ -193,7 +203,7 @@ func (r Root) RefreshUserAccount(_ context.Context, params RefreshUserAccountPar
 			IP:            params.Agent.IP,
 			Name:          params.Agent.Name,
 			Location:      params.Agent.Location,
-			UserID:        claims[application.UserIdClaim],
+			UserID:        u.ID,
 		},
 	); err != nil {
 		return nil, resolverErrDatabaseOperation(err)
