@@ -32,7 +32,7 @@ type Mutation {
    # loginUserAccount: authenticate a user.
   loginUserAccount(email: String!, password: String!, agent: UserAgentInput!): Tokens!
   # refreshUserAccount: refresh user authentication.
-  refreshUserAccount(agent: UserAgentInput!): Tokens!
+  refreshUserAccount(agent: UserAgentInput!, token: String!): Tokens!
 }
 
 input RegisterUserAccountInput {

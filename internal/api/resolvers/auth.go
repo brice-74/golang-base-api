@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/brice-74/golang-base-api/internal/api/application"
@@ -13,12 +14,7 @@ import (
 )
 
 // RegisterUserAccount: register a new user account
-func (r Root) RegisterUserAccount(ctx context.Context, params RegisterUserAccountParams) (*UserAccountResolver, error) {
-	uctx := r.App.UserFromContext(ctx)
-	if !uctx.User.IsAnonymous() {
-		return nil, resolverErrUnauthorized
-	}
-
+func (r Root) RegisterUserAccount(_ context.Context, params RegisterUserAccountParams) (*UserAccountResolver, error) {
 	u := user.User{
 		Email:      params.Input.Email,
 		Password:   params.Input.Password,
@@ -48,10 +44,7 @@ func (r Root) RegisterUserAccount(ctx context.Context, params RegisterUserAccoun
 	u.Roles = []user.Role{user.RoleUser}
 	// insert peacefully
 	if err := r.App.Models.User.InsertRegisteredUserAccount(&u); err != nil {
-		if err == user.ErrDuplicateEmail {
-			return nil, resolverError{Code: errDatabaseOperation, Message: err.Error(), StatusCode: 500}
-		}
-		return nil, err
+		return nil, resolverErrDatabaseOperation(err)
 	}
 
 	return &UserAccountResolver{app: r.App, user: u}, nil
@@ -109,12 +102,7 @@ func (r UserAccountResolver) ShortId() string {
 }
 
 // LoginUserAccount: authenticate a user by returning tokens
-func (r Root) LoginUserAccount(ctx context.Context, params LoginUserAccountParams) (*TokensUserAccountResolver, error) {
-	uctx := r.App.UserFromContext(ctx)
-	if !uctx.User.IsAnonymous() {
-		return nil, resolverErrUnauthorized
-	}
-
+func (r Root) LoginUserAccount(_ context.Context, params LoginUserAccountParams) (*TokensUserAccountResolver, error) {
 	uEntry := user.User{
 		Email:    params.Email,
 		Password: params.Password,
@@ -130,14 +118,14 @@ func (r Root) LoginUserAccount(ctx context.Context, params LoginUserAccountParam
 	uReg, err := r.App.Models.User.GetByEmail(uEntry.Email)
 	if err != nil {
 		if err == user.ErrNotFound {
-			return nil, resolverError{Code: errNotFound, Message: err.Error()}
+			return nil, resolverErrNotFound(err)
 		} else {
-			return nil, err
+			return nil, resolverErrDatabaseOperation(err)
 		}
 	}
 	// check password
 	if err = bcrypt.CompareHashAndPassword([]byte(uReg.Password), []byte(uEntry.Password)); err != nil {
-		return nil, resolverError{Code: errInvalidCredentials, Message: "incorrect password"}
+		return nil, resolverErrUnauthorized(errors.New("incorrect password"))
 	}
 	// create jwt access & refresh
 	td, err := r.App.CreateTokens(uReg.ID, string(params.Agent.ID))
@@ -155,7 +143,7 @@ func (r Root) LoginUserAccount(ctx context.Context, params LoginUserAccountParam
 			UserID:        uReg.ID,
 		},
 	); err != nil {
-		return nil, err
+		return nil, resolverErrDatabaseOperation(err)
 	}
 	// everything is good, return tokens using resolver
 	return &TokensUserAccountResolver{app: r.App, tokens: user.Tokens{
@@ -177,15 +165,25 @@ type AgentParams struct {
 	Location string
 }
 
-func (r Root) RefreshUserAccount(ctx context.Context, params RefreshUserAccountParams) (*TokensUserAccountResolver, error) {
-	uctx := r.App.UserFromContext(ctx)
-	if uctx.Token.IsAccess {
-		return nil, resolverErrUnauthorized
-	}
-
-	td, err := r.App.CreateTokens(uctx.User.ID, uctx.SessionID)
+func (r Root) RefreshUserAccount(_ context.Context, params RefreshUserAccountParams) (*TokensUserAccountResolver, error) {
+	// Check token is valid and up to date
+	token, err := application.VerifyToken(params.Token, r.App.Config.JWT.Refresh.Secret)
 	if err != nil {
 		return nil, err
+	}
+	// Extract userID claim in the token
+	claims, err := application.ExtractTokenMetadata(token, []application.JwtClaimKey{application.UserIdClaim, application.UserAgentIdClaim})
+	if err != nil {
+		return nil, err
+	}
+
+	td, err := r.App.CreateTokens(claims[application.UserIdClaim], claims[application.UserAgentIdClaim])
+	if err != nil {
+		return nil, err
+	}
+
+	if claims[application.UserAgentIdClaim] != string(params.Agent.ID) {
+		return nil, resolverErrUnauthorized(errors.New("Invalid session"))
 	}
 
 	if err = r.App.Models.User.InsertOrUpdateUserSession(
@@ -195,10 +193,10 @@ func (r Root) RefreshUserAccount(ctx context.Context, params RefreshUserAccountP
 			IP:            params.Agent.IP,
 			Name:          params.Agent.Name,
 			Location:      params.Agent.Location,
-			UserID:        uctx.User.ID,
+			UserID:        claims[application.UserIdClaim],
 		},
 	); err != nil {
-		return nil, err
+		return nil, resolverErrDatabaseOperation(err)
 	}
 
 	return &TokensUserAccountResolver{app: r.App, tokens: user.Tokens{
@@ -209,6 +207,7 @@ func (r Root) RefreshUserAccount(ctx context.Context, params RefreshUserAccountP
 
 type RefreshUserAccountParams struct {
 	Agent AgentParams
+	Token string
 }
 
 type TokensUserAccountResolver struct {

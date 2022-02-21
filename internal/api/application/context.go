@@ -29,10 +29,5 @@ func (app *Application) UserFromContext(ctx context.Context) *UserCtx {
 
 type UserCtx struct {
 	User      *user.User
-	Token     *TokenCtx
 	SessionID string
-}
-
-type TokenCtx struct {
-	IsAccess bool
 }

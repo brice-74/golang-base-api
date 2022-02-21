@@ -134,7 +134,6 @@ func (app *Application) Authenticate(next http.Handler) http.Handler {
 		w.Header().Add("Vary", "Authorization")
 
 		var authorizationHeader = r.Header.Get("Authorization")
-		var grantTypeHeader = r.Header.Get("Grant-Type")
 		// Set an anonymous user in the request is no Authorization header.
 		if authorizationHeader == "" {
 			ctx := app.ContextWithUser(r.Context(), &UserCtx{User: user.AnonymousUser})
@@ -147,21 +146,8 @@ func (app *Application) Authenticate(next http.Handler) http.Handler {
 			app.InvalidAuthenticationTokenResponse(w, r, nil)
 			return
 		}
-		// Check Grant-Type header to know if is a resfresh token
-		var isAccess bool = true
-		var secret string = app.Config.JWT.Access.Secret
-		if grantTypeHeader != "" {
-			if grantTypeHeader == "refresh-token" {
-				isAccess = false
-				secret = app.Config.JWT.Refresh.Secret
-			} else {
-				w.Header().Set("Grant-Type", "refresh-token")
-				app.BadRequestResponse(w, r, errors.New("Invalid header value"))
-				return
-			}
-		}
 		// Check token is valid and up to date
-		token, err := VerifyToken(headerParts[1], secret)
+		token, err := VerifyToken(headerParts[1], app.Config.JWT.Access.Secret)
 		if err != nil {
 			app.InvalidAuthenticationTokenResponse(w, r, err)
 			return
@@ -184,10 +170,7 @@ func (app *Application) Authenticate(next http.Handler) http.Handler {
 		}
 
 		ctx := app.ContextWithUser(r.Context(), &UserCtx{
-			User: u,
-			Token: &TokenCtx{
-				IsAccess: isAccess,
-			},
+			User:      u,
 			SessionID: claims[UserAgentIdClaim],
 		})
 		next.ServeHTTP(w, r.WithContext(ctx))

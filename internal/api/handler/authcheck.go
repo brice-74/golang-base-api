@@ -8,21 +8,11 @@ import (
 
 func AuthToken(app *application.Application) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		actx := app.UserFromContext(r.Context())
-
-		var scope string
-		if actx.Token.IsAccess {
-			scope = "access token"
-		} else {
-			scope = "refresh token"
-		}
+		ctx := app.UserFromContext(r.Context())
 
 		context := application.Envelope{
-			"session": actx.SessionID,
-			"roles":   actx.User.Roles,
-			"token": application.Envelope{
-				"scope": scope,
-			},
+			"session": ctx.SessionID,
+			"roles":   ctx.User.Roles,
 		}
 
 		if err := app.WriteJSON(w, http.StatusOK, context, nil); err != nil {
