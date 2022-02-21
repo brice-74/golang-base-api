@@ -12,20 +12,19 @@ You will need Docker installed on your machine. Please read the
 
 ## Usage
 
-Copy the `.env.example` file in a new `.env.dev` file and replace
-the values and secrets if necessary.
+:point_right: Copy the `.env.example` file in a new `.env.dev` file and replace the values and secrets if necessary.
 
-:running::whale2: You can now start the project in two different ways, in both cases, the command will start the Docker containers with the API HTTP server and the Postgres database:
+:whale2: You can now start the project in two different ways, in both cases, the command will start the Docker containers with the API HTTP server and the Postgres database:
 
 ```bash
 make run/dev/air # Start using cosmtrek/air
 make run/dev/reflex # Start using cespare/reflex
 ```
 
-:point_right::elephant: Make sure to perform migrations will containers are running:
+:elephant: Make sure to perform migrations will containers are running:
 
 ```bash
 make db/migrations/up # Create postgres tables
 ```
 
-Enjoy ! :sunglasses:
+Everything good, Enjoy ! :sunglasses:
