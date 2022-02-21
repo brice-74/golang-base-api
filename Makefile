@@ -62,11 +62,6 @@ db/migrations/down:
 # DOCKER
 # ==================================================================================== #
 
-## docker/build: build the docker image 
-.PHONY: docker/build/air
-docker/build/air:
-	@docker build -t $(docker_api_image_name) -f Dockerfile_air .
-
 ## docker/sh: connect to the api container while running in parallel
 .PHONY: docker/sh
 docker/sh:
