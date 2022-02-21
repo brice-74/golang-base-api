@@ -14,13 +14,57 @@ const (
 	errNotFound           = "NotFoundError"
 )
 
-var (
-	resolverErrUnauthorized = resolverError{
+func resolverErrNotFound(err error) resolverError {
+	msg := "Ressource coul not be found"
+	if err != nil {
+		msg = err.Error()
+	}
+
+	return resolverError{
+		Code:       errNotFound,
+		StatusCode: 404,
+		Message:    msg,
+	}
+}
+
+func resolverErrInvalidCredentials(err error) resolverError {
+	msg := "Invalid credentials"
+	if err != nil {
+		msg = err.Error()
+	}
+
+	return resolverError{
+		Code:       errInvalidCredentials,
+		StatusCode: 403,
+		Message:    msg,
+	}
+}
+
+func resolverErrUnauthorized(err error) resolverError {
+	msg := "Unauthorized access"
+	if err != nil {
+		msg = err.Error()
+	}
+
+	return resolverError{
 		Code:       errUnauthorized,
 		StatusCode: 401,
-		Message:    "Access Unauthorized",
+		Message:    msg,
 	}
-)
+}
+
+func resolverErrDatabaseOperation(err error) resolverError {
+	msg := "Database operation error"
+	if err != nil {
+		msg = err.Error()
+	}
+
+	return resolverError{
+		Code:       errDatabaseOperation,
+		StatusCode: 500,
+		Message:    msg,
+	}
+}
 
 // resolverError is a general resolver error helper.
 type resolverError struct {
@@ -52,7 +96,8 @@ func (e validatorError) Error() string {
 
 func (e validatorError) Extensions() map[string]interface{} {
 	return map[string]interface{}{
-		"code":   errValidator,
-		"errors": e.Errors,
+		"statusCode": 422,
+		"code":       errValidator,
+		"errors":     e.Errors,
 	}
 }
