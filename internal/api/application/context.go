@@ -28,6 +28,12 @@ func (app *Application) UserFromContext(ctx context.Context) *UserCtx {
 }
 
 type UserCtx struct {
-	User      *user.User
+	User   *user.User
+	Client *Client
+}
+
+type Client struct {
 	SessionID string
+	IP        string
+	Agent     string
 }

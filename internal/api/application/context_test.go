@@ -15,7 +15,11 @@ func TestContextWithUser(t *testing.T) {
 		User: &user.User{
 			ID: "1234",
 		},
-		SessionID: "1234",
+		Client: &Client{
+			SessionID: "5678",
+			IP:        "0.0.0.0",
+			Agent:     "agent",
+		},
 	}
 
 	ctx := app.ContextWithUser(context.Background(), u)
@@ -45,7 +49,11 @@ func TestUserFromContext(t *testing.T) {
 			User: &user.User{
 				ID: "1234",
 			},
-			SessionID: "1234",
+			Client: &Client{
+				SessionID: "5678",
+				IP:        "0.0.0.0",
+				Agent:     "agent",
+			},
 		}
 
 		ctx := context.WithValue(context.Background(), userCtxKey, u)

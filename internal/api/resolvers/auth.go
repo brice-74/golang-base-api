@@ -102,7 +102,9 @@ func (r UserAccountResolver) ShortId() string {
 }
 
 // LoginUserAccount: authenticate a user by returning tokens
-func (r Root) LoginUserAccount(_ context.Context, params LoginUserAccountParams) (*TokensUserAccountResolver, error) {
+func (r Root) LoginUserAccount(ctx context.Context, params LoginUserAccountParams) (*TokensUserAccountResolver, error) {
+	uctx := r.App.UserFromContext(ctx)
+
 	uEntry := user.User{
 		Email:    params.Email,
 		Password: params.Password,
@@ -117,7 +119,7 @@ func (r Root) LoginUserAccount(_ context.Context, params LoginUserAccountParams)
 	// find registered user
 	uReg, err := r.App.Models.User.GetByEmail(uEntry.Email)
 	if err != nil {
-		if err == user.ErrNotFound {
+		if err == user.ErrNotFoundUser {
 			return nil, resolverErrNotFound(err)
 		} else {
 			return nil, resolverErrDatabaseOperation(err)
@@ -128,18 +130,17 @@ func (r Root) LoginUserAccount(_ context.Context, params LoginUserAccountParams)
 		return nil, resolverErrUnauthorized(errors.New("incorrect password"))
 	}
 	// create jwt access & refresh
-	td, err := r.App.CreateTokens(uReg.ID, string(params.Agent.ID))
+	td, err := r.App.CreateTokens(uReg.ID, uctx.Client.SessionID)
 	if err != nil {
 		return nil, err
 	}
 
 	if err = r.App.Models.User.InsertOrUpdateUserSession(
 		&user.Session{
-			ID:            string(params.Agent.ID),
+			ID:            uctx.Client.SessionID,
 			DeactivatedAt: time.Unix(td.RefreshExp, 0),
-			IP:            params.Agent.IP,
-			Name:          params.Agent.Name,
-			Location:      params.Agent.Location,
+			IP:            uctx.Client.IP,
+			Agent:         uctx.Client.Agent,
 			UserID:        uReg.ID,
 		},
 	); err != nil {
@@ -155,17 +156,10 @@ func (r Root) LoginUserAccount(_ context.Context, params LoginUserAccountParams)
 type LoginUserAccountParams struct {
 	Email    string
 	Password string
-	Agent    AgentParams
 }
 
-type AgentParams struct {
-	ID       graphql.ID
-	IP       string
-	Name     string
-	Location string
-}
-
-func (r Root) RefreshUserAccount(_ context.Context, params RefreshUserAccountParams) (*TokensUserAccountResolver, error) {
+func (r Root) RefreshUserAccount(ctx context.Context, params RefreshUserAccountParams) (*TokensUserAccountResolver, error) {
+	uctx := r.App.UserFromContext(ctx)
 	// Check token is valid and up to date
 	token, err := application.VerifyToken(params.Token, r.App.Config.JWT.Refresh.Secret)
 	if err != nil {
@@ -177,33 +171,36 @@ func (r Root) RefreshUserAccount(_ context.Context, params RefreshUserAccountPar
 		return nil, err
 	}
 
-	td, err := r.App.CreateTokens(claims[application.UserIdClaim], claims[application.UserAgentIdClaim])
-	if err != nil {
-		return nil, err
-	}
-
-	if claims[application.UserAgentIdClaim] != string(params.Agent.ID) {
-		return nil, resolverErrUnauthorized(errors.New("Invalid session"))
-	}
-
-	u, err := r.App.Models.User.GetById(claims[application.UserIdClaim])
+	s, err := r.App.Models.User.GetSessionByID(claims[application.UserAgentIdClaim])
 	if err != nil {
 		switch {
-		case errors.Is(err, user.ErrNotFound):
+		case errors.Is(err, user.ErrNotFoundSession):
 			return nil, resolverErrNotFound(err)
 		default:
 			return nil, resolverErrDatabaseOperation(err)
 		}
 	}
 
+	if claims[application.UserIdClaim] != s.UserID {
+		return nil, resolverErrUnauthorized(errors.New("Invalid user session"))
+	}
+
+	if s.IsActive() {
+		return nil, resolverErrUnauthorized(errors.New("Cannot refresh, a user session is already active"))
+	}
+
+	td, err := r.App.CreateTokens(claims[application.UserIdClaim], claims[application.UserAgentIdClaim])
+	if err != nil {
+		return nil, err
+	}
+
 	if err = r.App.Models.User.InsertOrUpdateUserSession(
 		&user.Session{
-			ID:            string(params.Agent.ID),
+			ID:            uctx.Client.SessionID,
 			DeactivatedAt: time.Unix(td.RefreshExp, 0),
-			IP:            params.Agent.IP,
-			Name:          params.Agent.Name,
-			Location:      params.Agent.Location,
-			UserID:        u.ID,
+			IP:            uctx.Client.IP,
+			Agent:         uctx.Client.Agent,
+			UserID:        s.UserID,
 		},
 	); err != nil {
 		return nil, resolverErrDatabaseOperation(err)
@@ -216,7 +213,6 @@ func (r Root) RefreshUserAccount(_ context.Context, params RefreshUserAccountPar
 }
 
 type RefreshUserAccountParams struct {
-	Agent AgentParams
 	Token string
 }
 

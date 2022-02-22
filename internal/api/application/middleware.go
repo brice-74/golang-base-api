@@ -133,10 +133,15 @@ func (app *Application) Authenticate(next http.Handler) http.Handler {
 		// Indicates to any cache systems that the response can vary based on the Authorization header.
 		w.Header().Add("Vary", "Authorization")
 
+		var cli = &Client{
+			IP:    r.RemoteAddr,
+			Agent: r.UserAgent(),
+		}
+
 		var authorizationHeader = r.Header.Get("Authorization")
 		// Set an anonymous user in the request is no Authorization header.
 		if authorizationHeader == "" {
-			ctx := app.ContextWithUser(r.Context(), &UserCtx{User: user.AnonymousUser})
+			ctx := app.ContextWithUser(r.Context(), &UserCtx{User: user.AnonymousUser, Client: cli})
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
@@ -159,19 +164,21 @@ func (app *Application) Authenticate(next http.Handler) http.Handler {
 			return
 		}
 
-		u, err := app.Models.User.GetById(claims[UserIdClaim])
+		u, s, err := app.Models.User.GetUserAndSession(claims[UserIdClaim], claims[UserAgentIdClaim])
 		if err != nil {
 			switch {
-			case errors.Is(err, user.ErrNotFound):
+			case errors.Is(err, user.ErrNotFoundUserAndSession):
 				app.NotFoundResponseErr(w, r, err)
 			default:
 				app.ServerErrorResponse(w, r, err)
 			}
 		}
 
+		cli.SessionID = s.ID
+
 		ctx := app.ContextWithUser(r.Context(), &UserCtx{
-			User:      u,
-			SessionID: claims[UserAgentIdClaim],
+			User:   u,
+			Client: cli,
 		})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
