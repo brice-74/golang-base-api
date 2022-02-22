@@ -30,7 +30,7 @@ type Mutation {
   # registerUserAccount: add a new user.
   registerUserAccount(input: RegisterUserAccountInput!): UserAccount!
    # loginUserAccount: authenticate a user.
-  loginUserAccount(email: String!, password: String!): Tokens!
+  loginUserAccount(email: String!, password: String!, sessionID: ID!): Tokens!
   # refreshUserAccount: refresh user authentication.
   refreshUserAccount(token: String!): Tokens!
 }

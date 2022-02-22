@@ -15,7 +15,7 @@ const (
 )
 
 func resolverErrNotFound(err error) resolverError {
-	msg := "Ressource coul not be found"
+	msg := "Ressource could not be found"
 	if err != nil {
 		msg = err.Error()
 	}

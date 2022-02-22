@@ -130,41 +130,41 @@ func (app *Application) RateLimit(next http.Handler) http.Handler {
 // Authenticate gets the token from the Authorization header and adds the retrieved user to the HTTP context request.
 func (app *Application) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Indicates to any cache systems that the response can vary based on the Authorization header.
+		// indicates to any cache systems that the response can vary based on the Authorization header.
 		w.Header().Add("Vary", "Authorization")
-
+		// retrieve request information.
 		var cli = &Client{
 			IP:    r.RemoteAddr,
 			Agent: r.UserAgent(),
 		}
 
 		var authorizationHeader = r.Header.Get("Authorization")
-		// Set an anonymous user in the request is no Authorization header.
+		// set an anonymous user in the request is no Authorization header.
 		if authorizationHeader == "" {
 			ctx := app.ContextWithUser(r.Context(), &UserCtx{User: user.AnonymousUser, Client: cli})
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
-		// Split Authorization header to recover token
+		// split Authorization header to recover token.
 		headerParts := strings.Split(authorizationHeader, " ")
 		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
 			app.InvalidAuthenticationTokenResponse(w, r, nil)
 			return
 		}
-		// Check token is valid and up to date
+		// check token is valid and up to date.
 		token, err := VerifyToken(headerParts[1], app.Config.JWT.Access.Secret)
 		if err != nil {
 			app.InvalidAuthenticationTokenResponse(w, r, err)
 			return
 		}
-		// Extract userID claim in the token
-		claims, err := ExtractTokenMetadata(token, []JwtClaimKey{UserIdClaim, UserAgentIdClaim})
+		// extract claims
+		claims, err := ExtractTokenMetadata(token, []JwtClaimKey{UserIdClaim, SessionIdClaim})
 		if err != nil {
 			app.InvalidAuthenticationTokenResponse(w, r, err)
 			return
 		}
-
-		u, s, err := app.Models.User.GetUserAndSession(claims[UserIdClaim], claims[UserAgentIdClaim])
+		// get session and verify that user id claim is associated to session id claim.
+		u, s, err := app.Models.User.GetUserAndSession(claims[UserIdClaim], claims[SessionIdClaim])
 		if err != nil {
 			switch {
 			case errors.Is(err, user.ErrNotFoundUserAndSession):
@@ -173,9 +173,9 @@ func (app *Application) Authenticate(next http.Handler) http.Handler {
 				app.ServerErrorResponse(w, r, err)
 			}
 		}
-
+		// set a session id for the context
 		cli.SessionID = s.ID
-
+		// create a reusable context for handlers and resolvers
 		ctx := app.ContextWithUser(r.Context(), &UserCtx{
 			User:   u,
 			Client: cli,

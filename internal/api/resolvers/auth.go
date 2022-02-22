@@ -130,14 +130,14 @@ func (r Root) LoginUserAccount(ctx context.Context, params LoginUserAccountParam
 		return nil, resolverErrUnauthorized(errors.New("incorrect password"))
 	}
 	// create jwt access & refresh
-	td, err := r.App.CreateTokens(uReg.ID, uctx.Client.SessionID)
+	td, err := r.App.CreateTokens(uReg.ID, string(params.SessionID))
 	if err != nil {
 		return nil, err
 	}
-
+	// insert session information or update if user need re login
 	if err = r.App.Models.User.InsertOrUpdateUserSession(
 		&user.Session{
-			ID:            uctx.Client.SessionID,
+			ID:            string(params.SessionID),
 			DeactivatedAt: time.Unix(td.RefreshExp, 0),
 			IP:            uctx.Client.IP,
 			Agent:         uctx.Client.Agent,
@@ -154,49 +154,46 @@ func (r Root) LoginUserAccount(ctx context.Context, params LoginUserAccountParam
 }
 
 type LoginUserAccountParams struct {
-	Email    string
-	Password string
+	Email     string
+	Password  string
+	SessionID graphql.ID
 }
 
 func (r Root) RefreshUserAccount(ctx context.Context, params RefreshUserAccountParams) (*TokensUserAccountResolver, error) {
 	uctx := r.App.UserFromContext(ctx)
-	// Check token is valid and up to date
+	// check token is valid and up to date
 	token, err := application.VerifyToken(params.Token, r.App.Config.JWT.Refresh.Secret)
 	if err != nil {
 		return nil, err
 	}
-	// Extract userID claim in the token
-	claims, err := application.ExtractTokenMetadata(token, []application.JwtClaimKey{application.UserIdClaim, application.UserAgentIdClaim})
+	// extract token claims
+	claims, err := application.ExtractTokenMetadata(token, []application.JwtClaimKey{application.UserIdClaim, application.SessionIdClaim})
 	if err != nil {
 		return nil, err
 	}
-
-	s, err := r.App.Models.User.GetSessionByID(claims[application.UserAgentIdClaim])
+	// get session and verify that user id claim is associated to session id claim
+	_, s, err := r.App.Models.User.GetUserAndSession(claims[application.UserIdClaim], claims[application.SessionIdClaim])
 	if err != nil {
 		switch {
-		case errors.Is(err, user.ErrNotFoundSession):
+		case errors.Is(err, user.ErrNotFoundUserAndSession):
 			return nil, resolverErrNotFound(err)
 		default:
 			return nil, resolverErrDatabaseOperation(err)
 		}
 	}
-
-	if claims[application.UserIdClaim] != s.UserID {
-		return nil, resolverErrUnauthorized(errors.New("Invalid user session"))
-	}
-
+	// check if active session exist
 	if s.IsActive() {
 		return nil, resolverErrUnauthorized(errors.New("Cannot refresh, a user session is already active"))
 	}
-
-	td, err := r.App.CreateTokens(claims[application.UserIdClaim], claims[application.UserAgentIdClaim])
+	// create new tokens
+	td, err := r.App.CreateTokens(claims[application.UserIdClaim], claims[application.SessionIdClaim])
 	if err != nil {
 		return nil, err
 	}
-
+	// update session information
 	if err = r.App.Models.User.InsertOrUpdateUserSession(
 		&user.Session{
-			ID:            uctx.Client.SessionID,
+			ID:            s.ID,
 			DeactivatedAt: time.Unix(td.RefreshExp, 0),
 			IP:            uctx.Client.IP,
 			Agent:         uctx.Client.Agent,

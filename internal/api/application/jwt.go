@@ -17,9 +17,9 @@ var (
 type JwtClaimKey string
 
 const (
-	UserIdClaim      JwtClaimKey = "user_id"
-	UserAgentIdClaim JwtClaimKey = "user_agent_id"
-	ExpireClaim      JwtClaimKey = "exp"
+	UserIdClaim    JwtClaimKey = "user_id"
+	SessionIdClaim JwtClaimKey = "user_agent_id"
+	ExpireClaim    JwtClaimKey = "exp"
 )
 
 type TokensDetails struct {
@@ -43,7 +43,7 @@ func (app *Application) CreateTokens(userID string, userAgentID string) (*Tokens
 	td.RefreshExp = time.Now().Add(refreshDuration).Unix()
 
 	var atClaims = jwt.MapClaims{}
-	atClaims[string(UserAgentIdClaim)] = userAgentID
+	atClaims[string(SessionIdClaim)] = userAgentID
 	atClaims[string(UserIdClaim)] = userID
 	atClaims[string(ExpireClaim)] = time.Now().Add(accessDuration).Unix()
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
@@ -53,7 +53,7 @@ func (app *Application) CreateTokens(userID string, userAgentID string) (*Tokens
 	}
 
 	var rtClaims = jwt.MapClaims{}
-	rtClaims[string(UserAgentIdClaim)] = userAgentID
+	rtClaims[string(SessionIdClaim)] = userAgentID
 	rtClaims[string(UserIdClaim)] = userID
 	rtClaims[string(ExpireClaim)] = td.RefreshExp
 	rt := jwt.NewWithClaims(jwt.SigningMethodHS256, rtClaims)
