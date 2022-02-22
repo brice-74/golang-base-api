@@ -22,7 +22,6 @@ CREATE TABLE IF NOT EXISTS user_session (
   "updated_at" TIMESTAMP(0) WITH TIME ZONE NOT NULL DEFAULT NOW(),
   "deactivated_at" TIMESTAMP(0) WITH TIME ZONE NOT NULL,
   "ip" TEXT NOT NULL,
-  "name" TEXT NOT NULL,
-  "location" TEXT NOT NULL,
+  "agent" TEXT NOT NULL,
   "user_id" uuid NOT NULL REFERENCES user_account ON DELETE CASCADE
 );

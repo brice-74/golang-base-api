@@ -30,20 +30,13 @@ type Mutation {
   # registerUserAccount: add a new user.
   registerUserAccount(input: RegisterUserAccountInput!): UserAccount!
    # loginUserAccount: authenticate a user.
-  loginUserAccount(email: String!, password: String!, agent: UserAgentInput!): Tokens!
+  loginUserAccount(email: String!, password: String!): Tokens!
   # refreshUserAccount: refresh user authentication.
-  refreshUserAccount(agent: UserAgentInput!, token: String!): Tokens!
+  refreshUserAccount(token: String!): Tokens!
 }
 
 input RegisterUserAccountInput {
   email: String!
   password: String!
   profilName: String!
-}
-
-input UserAgentInput {
-  id: ID!
-  ip: String!
-  name: String!
-  location: String!
 }

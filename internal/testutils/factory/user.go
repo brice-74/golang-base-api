@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/brice-74/golang-base-api/internal/domains/user"
+	"github.com/twinj/uuid"
 	"github.com/ventu-io/go-shortid"
 )
 
@@ -49,19 +50,15 @@ func (f Factory) CreateUserSession(props *user.Session) *user.Session {
 	}
 
 	if s.ID == "" {
-		s.ID = f.faker.UUID().V4()
+		s.ID = uuid.NewV4().String()
 	}
 
 	if s.IP == "" {
 		s.IP = f.faker.Internet().Ipv4()
 	}
 
-	if s.Name == "" {
-		s.Name = f.faker.UserAgent().UserAgent()
-	}
-
-	if s.Location == "" {
-		s.Location = f.faker.Address().Country()
+	if s.Agent == "" {
+		s.Agent = f.faker.UserAgent().UserAgent()
 	}
 
 	if s.UserID == "" {

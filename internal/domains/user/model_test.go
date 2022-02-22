@@ -74,8 +74,7 @@ func TestInsertOrUpdateUserSession(t *testing.T) {
 		ID:            uuid.NewV4().String(),
 		DeactivatedAt: time.Now(),
 		IP:            "0.0.0.0",
-		Name:          "test",
-		Location:      "location",
+		Agent:         "agent",
 		UserID:        u.ID,
 	}
 
@@ -126,6 +125,51 @@ func TestGetByEmail(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(u, got); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+func TestGetSessionByID(t *testing.T) {
+	var (
+		db  = testutils.PrepareDB(t)
+		m   = user.Model{DB: db}
+		fac = factory.New(t, db)
+	)
+
+	s := fac.CreateUserSession(nil)
+
+	got, err := m.GetSessionByID(s.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(s, got); diff != "" {
+		t.Fatal(diff)
+	}
+}
+
+func TestGetUserAndSession(t *testing.T) {
+	var (
+		db  = testutils.PrepareDB(t)
+		m   = user.Model{DB: db}
+		fac = factory.New(t, db)
+	)
+
+	u := fac.CreateUserAccount(nil)
+	s := fac.CreateUserSession(&user.Session{
+		UserID: u.ID,
+	})
+
+	gotu, gots, err := m.GetUserAndSession(u.ID, s.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(u, gotu); diff != "" {
+		t.Fatal(diff)
+	}
+
+	if diff := cmp.Diff(s, gots); diff != "" {
 		t.Fatal(diff)
 	}
 }

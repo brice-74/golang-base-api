@@ -8,7 +8,10 @@ type Session struct {
 	UpdatedAt     time.Time
 	DeactivatedAt time.Time
 	IP            string
-	Name          string
-	Location      string
+	Agent         string
 	UserID        string
+}
+
+func (s *Session) IsActive() bool {
+	return s.DeactivatedAt.After(time.Now())
 }

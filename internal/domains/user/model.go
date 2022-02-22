@@ -11,8 +11,10 @@ import (
 )
 
 var (
-	ErrNotFound       = errors.New("user not found")
-	ErrDuplicateEmail = errors.New("duplicate email")
+	ErrNotFoundUserAndSession = errors.New("User or user session not found")
+	ErrNotFoundSession        = errors.New("User session not found")
+	ErrNotFoundUser           = errors.New("User not found")
+	ErrDuplicateEmail         = errors.New("Duplicate email")
 )
 
 type Model struct {
@@ -65,15 +67,15 @@ func (m Model) getBy(column string, value interface{}) (*User, error) {
 	defer cancel()
 
 	var (
-		user           User
-		deactivated_at pq.NullTime
+		user          User
+		deactivatedAt pq.NullTime
 	)
 
 	err := m.DB.QueryRowContext(ctx, query, value).Scan(
 		&user.ID,
 		&user.CreatedAt,
 		&user.UpdatedAt,
-		&deactivated_at,
+		&deactivatedAt,
 		&user.Email,
 		&user.Password,
 		pq.Array(&user.Roles),
@@ -84,13 +86,13 @@ func (m Model) getBy(column string, value interface{}) (*User, error) {
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
-			return nil, ErrNotFound
+			return nil, ErrNotFoundUser
 		default:
 			return nil, err
 		}
 	}
 
-	user.DeactivatedAt = deactivated_at.Time
+	user.DeactivatedAt = deactivatedAt.Time
 
 	return &user, nil
 }
@@ -118,9 +120,9 @@ func (m Model) InsertRegisteredUserAccount(user *User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	var deactivated_at pq.NullTime
+	var deactivatedAt pq.NullTime
 
-	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt, &deactivated_at)
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt, &deactivatedAt)
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique constraint "user_account_email_key"`:
@@ -130,7 +132,7 @@ func (m Model) InsertRegisteredUserAccount(user *User) error {
 		}
 	}
 
-	user.DeactivatedAt = deactivated_at.Time
+	user.DeactivatedAt = deactivatedAt.Time
 
 	return nil
 }
@@ -141,25 +143,22 @@ func (m Model) InsertOrUpdateUserSession(session *Session) error {
 			id,
 			deactivated_at,
 			ip,
-			name,
-			location,
+			agent,
 			user_id
 		) 
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (id) DO UPDATE SET  
 			deactivated_at = $2,
 			ip = $3,
-			name = $4,
-			location = $5,
-			user_id = $6
+			agent = $4,
+			user_id = $5
 		RETURNING created_at, updated_at`
 
 	args := []interface{}{
 		session.ID,
 		session.DeactivatedAt,
 		session.IP,
-		session.Name,
-		session.Location,
+		session.Agent,
 		session.UserID,
 	}
 
@@ -172,4 +171,118 @@ func (m Model) InsertOrUpdateUserSession(session *Session) error {
 	}
 
 	return nil
+}
+
+func (m Model) GetSessionByID(id string) (*Session, error) {
+	return m.getSessionBy("id", id)
+}
+
+func (m Model) getSessionBy(column string, value interface{}) (*Session, error) {
+	query := fmt.Sprintf(`
+		SELECT 
+			id,
+			created_at,
+			updated_at,
+			deactivated_at,
+			ip,
+			agent,
+			user_id
+		FROM user_session
+		WHERE %s = $1`, column)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var (
+		session Session
+	)
+
+	err := m.DB.QueryRowContext(ctx, query, value).Scan(
+		&session.ID,
+		&session.CreatedAt,
+		&session.UpdatedAt,
+		&session.DeactivatedAt,
+		&session.IP,
+		&session.Agent,
+		&session.UserID,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrNotFoundSession
+		default:
+			return nil, err
+		}
+	}
+
+	return &session, nil
+}
+
+func (m Model) GetUserAndSession(userID, sessionID string) (*User, *Session, error) {
+	query := `
+		SELECT 
+			u.id,
+			u.created_at,
+			u.updated_at,
+			u.deactivated_at,
+			u.email,
+			u.password,
+			u.roles,
+			u.profil_name, 
+			u.short_id,
+			s.id,
+			s.created_at,
+			s.updated_at,
+			s.deactivated_at,
+			s.ip,
+			s.agent,
+			s.user_id
+		FROM user_account AS u
+		INNER JOIN user_session AS s
+			ON s.user_id = u.id
+		WHERE u.id = $1
+		AND s.id = $2
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var (
+		session           Session
+		user              User
+		userDeactivatedAt pq.NullTime
+	)
+
+	err := m.DB.QueryRowContext(ctx, query, userID, sessionID).Scan(
+		&user.ID,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&userDeactivatedAt,
+		&user.Email,
+		&user.Password,
+		pq.Array(&user.Roles),
+		&user.ProfilName,
+		&user.ShortId,
+		&session.ID,
+		&session.CreatedAt,
+		&session.UpdatedAt,
+		&session.DeactivatedAt,
+		&session.IP,
+		&session.Agent,
+		&session.UserID,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, nil, ErrNotFoundUserAndSession
+		default:
+			return nil, nil, err
+		}
+	}
+
+	user.DeactivatedAt = userDeactivatedAt.Time
+
+	return &user, &session, nil
 }

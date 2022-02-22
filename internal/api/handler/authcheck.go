@@ -11,8 +11,12 @@ func AuthToken(app *application.Application) http.HandlerFunc {
 		ctx := app.UserFromContext(r.Context())
 
 		context := application.Envelope{
-			"session": ctx.SessionID,
-			"roles":   ctx.User.Roles,
+			"Client": application.Envelope{
+				"Session": ctx.Client.SessionID,
+				"Agent":   ctx.Client.Agent,
+				"IP":      ctx.Client.IP,
+			},
+			"Roles": ctx.User.Roles,
 		}
 
 		if err := app.WriteJSON(w, http.StatusOK, context, nil); err != nil {
