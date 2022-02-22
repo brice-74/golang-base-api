@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	errInvalidCredentials = "InvalidCredentials"
-	errUnauthorized       = "Unauthorized"
-	errValidator          = "ValidatorError"
-	errDatabaseOperation  = "DatabaseOperationError"
-	errNotFound           = "NotFoundError"
+	//errInvalidCredentials = "InvalidCredentials"
+	errUnauthorized      = "Unauthorized"
+	errValidator         = "ValidatorError"
+	errDatabaseOperation = "DatabaseOperationError"
+	errNotFound          = "NotFoundError"
 )
 
 func resolverErrNotFound(err error) resolverError {
@@ -27,7 +27,7 @@ func resolverErrNotFound(err error) resolverError {
 	}
 }
 
-func resolverErrInvalidCredentials(err error) resolverError {
+/* func resolverErrInvalidCredentials(err error) resolverError {
 	msg := "Invalid credentials"
 	if err != nil {
 		msg = err.Error()
@@ -38,7 +38,7 @@ func resolverErrInvalidCredentials(err error) resolverError {
 		StatusCode: 403,
 		Message:    msg,
 	}
-}
+} */
 
 func resolverErrUnauthorized(err error) resolverError {
 	msg := "Unauthorized access"
