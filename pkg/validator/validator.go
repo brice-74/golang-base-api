@@ -5,18 +5,34 @@ import (
 	"regexp"
 )
 
+func setMinMaxStr(min, max int) (minstr, maxstr string) {
+	minstr = fmt.Sprint(min)
+	maxstr = fmt.Sprint(max)
+	if min == 0 {
+		minstr = ""
+	}
+	if max == 0 {
+		maxstr = ""
+	}
+	return minstr, maxstr
+}
+
 var (
 	SpecialCharRX = func(min, max int) *regexp.Regexp {
-		return regexp.MustCompile(`^(.*?[\*\.!@#\$%\^&\(\)\{\}\[\]:;<>,.\?\\/~_\+\-=\|]){` + fmt.Sprint(min) + `,` + fmt.Sprint(max) + `}.*$`)
+		minstr, maxstr := setMinMaxStr(min, max)
+		return regexp.MustCompile(`^(.*?[\*\.!@#\$%\^&\(\)\{\}\[\]:;<>,.\?\\/~_\+\-=\|]){` + minstr + `,` + maxstr + `}.*$`)
 	}
 	DigitRX = func(min, max int) *regexp.Regexp {
-		return regexp.MustCompile(fmt.Sprintf("^(.*?[0-9]){%d,%d}.*$", min, max))
+		minstr, maxstr := setMinMaxStr(min, max)
+		return regexp.MustCompile(fmt.Sprintf("^(.*?[0-9]){%s,%s}.*$", minstr, maxstr))
 	}
 	LowercaseRX = func(min, max int) *regexp.Regexp {
-		return regexp.MustCompile(fmt.Sprintf("^(.*?[a-z]){%d,%d}.*$", min, max))
+		minstr, maxstr := setMinMaxStr(min, max)
+		return regexp.MustCompile(fmt.Sprintf("^(.*?[a-z]){%s,%s}.*$", minstr, maxstr))
 	}
 	UppercaseRX = func(min, max int) *regexp.Regexp {
-		return regexp.MustCompile(fmt.Sprintf("^(.*?[A-Z]){%d,%d}.*$", min, max))
+		minstr, maxstr := setMinMaxStr(min, max)
+		return regexp.MustCompile(fmt.Sprintf("^(.*?[A-Z]){%s,%s}.*$", minstr, maxstr))
 	}
 	EmailRX = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 )

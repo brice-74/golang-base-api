@@ -58,3 +58,140 @@ func TestIn(t *testing.T) {
 		}
 	})
 }
+
+func TestEmailRX(t *testing.T) {
+	badstr := "bad-email"
+	goodstr := "test@test.com"
+
+	t.Run("shouldn't match", func(t *testing.T) {
+		if EmailRX.MatchString(badstr) {
+			t.Fatalf("regex shouldn't match: %s", badstr)
+		}
+	})
+
+	t.Run("should match", func(t *testing.T) {
+		if !EmailRX.MatchString(goodstr) {
+			t.Fatalf("regex should match: %s", badstr)
+		}
+	})
+}
+
+func TestSpecialCharRX(t *testing.T) {
+	badstr := "not special"
+	goodstr := `.!@#$%^&:;<>,./\?()[]{}*~-_+=`
+	le := len(goodstr)
+
+	t.Run("shouldn't match one", func(t *testing.T) {
+		if SpecialCharRX(1, 1).MatchString(badstr) {
+			t.Fatalf("regex shouldn't match: %s", badstr)
+		}
+	})
+
+	t.Run("shouldn't match min", func(t *testing.T) {
+		if SpecialCharRX(le+1, 0).MatchString(goodstr) {
+			t.Fatalf("regex shouldn't match min of %d: %s", le+1, goodstr)
+		}
+	})
+
+	t.Run("shouldn't match max", func(t *testing.T) {
+		if SpecialCharRX(0, le-1).MatchString(goodstr) {
+			t.Fatalf("regex shouldn't match max of %d: %s", le-1, goodstr)
+		}
+	})
+
+	t.Run("should match", func(t *testing.T) {
+		if !SpecialCharRX(le, le).MatchString(goodstr) {
+			t.Fatalf("regex should match: %s", goodstr)
+		}
+	})
+}
+
+func TestDigitRX(t *testing.T) {
+	badstr := "not digit"
+	goodstr := "12345"
+	le := len(goodstr)
+
+	t.Run("shouldn't match one", func(t *testing.T) {
+		if DigitRX(1, 1).MatchString(badstr) {
+			t.Fatalf("regex shouldn't match: %s", badstr)
+		}
+	})
+
+	t.Run("shouldn't match min", func(t *testing.T) {
+		if DigitRX(le+1, 0).MatchString(goodstr) {
+			t.Fatalf("regex shouldn't match min of %d: %s", le+1, goodstr)
+		}
+	})
+
+	t.Run("shouldn't match max", func(t *testing.T) {
+		if DigitRX(0, le-1).MatchString(goodstr) {
+			t.Fatalf("regex shouldn't match max of %d: %s", le-1, goodstr)
+		}
+	})
+
+	t.Run("should match", func(t *testing.T) {
+		if !DigitRX(le, le).MatchString(goodstr) {
+			t.Fatalf("regex should match: %s", goodstr)
+		}
+	})
+}
+
+func TestLowercaseRX(t *testing.T) {
+	badstr := "NOT LOWER"
+	goodstr := "lower"
+	le := len(goodstr)
+
+	t.Run("shouldn't match one", func(t *testing.T) {
+		if LowercaseRX(1, 1).MatchString(badstr) {
+			t.Fatalf("regex shouldn't match: %s", badstr)
+		}
+	})
+
+	t.Run("shouldn't match min", func(t *testing.T) {
+		if LowercaseRX(le+1, 0).MatchString(goodstr) {
+			t.Fatalf("regex shouldn't match min of %d: %s", le+1, goodstr)
+		}
+	})
+
+	t.Run("shouldn't match max", func(t *testing.T) {
+		if LowercaseRX(0, le-1).MatchString(goodstr) {
+			t.Fatalf("regex shouldn't match max of %d: %s", le-1, goodstr)
+		}
+	})
+
+	t.Run("should match", func(t *testing.T) {
+		if !LowercaseRX(le, le).MatchString(goodstr) {
+			t.Fatalf("regex should match: %s", goodstr)
+		}
+	})
+}
+
+func TestUppercaseRX(t *testing.T) {
+	badstr := "not upper"
+	goodstr := "UPPER"
+	le := len(goodstr)
+
+	t.Run("shouldn't match one", func(t *testing.T) {
+		if UppercaseRX(1, 1).MatchString(badstr) {
+			t.Fatalf("regex shouldn't match: %s", badstr)
+		}
+	})
+
+	t.Run("shouldn't match min", func(t *testing.T) {
+		if UppercaseRX(le+1, 0).MatchString(goodstr) {
+			t.Fatalf("regex shouldn't match min of %d: %s", le+1, goodstr)
+		}
+	})
+
+	t.Run("shouldn't match max", func(t *testing.T) {
+		if UppercaseRX(0, le-1).MatchString(goodstr) {
+			t.Fatalf("regex shouldn't match max of %d: %s", le-1, goodstr)
+		}
+	})
+
+	t.Run("should match", func(t *testing.T) {
+		if !UppercaseRX(le, le).MatchString(goodstr) {
+			t.Fatalf("regex should match: %s", goodstr)
+		}
+	})
+}
