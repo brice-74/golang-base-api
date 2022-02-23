@@ -16,6 +16,7 @@ const (
 	LevelInfo Level = iota
 	LevelError
 	LevelFatal
+	LevelDisable
 )
 
 func (l Level) String() string {

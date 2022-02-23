@@ -3,9 +3,12 @@ package application_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/brice-74/golang-base-api/internal/api/application"
+	"github.com/brice-74/golang-base-api/pkg/jsonlog"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -78,5 +81,70 @@ func TestEnableCORS(t *testing.T) {
 
 			handler.ServeHTTP(httptest.NewRecorder(), req)
 		})
+	}
+}
+
+func TestRecoverPanic(t *testing.T) {
+	app := &application.Application{
+		Logger: jsonlog.New(
+			os.Stdout,
+			// Disable logs
+			jsonlog.LevelDisable,
+			jsonlog.Middlewares{},
+		),
+	}
+
+	handlerFunc := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		panic("I panic !!!")
+	})
+
+	req := httptest.NewRequest("GET", "/", nil)
+	res := httptest.NewRecorder()
+
+	app.RecoverPanic(handlerFunc).ServeHTTP(res, req)
+
+	if res.Header().Get("Connection") != "close" {
+		t.Errorf("Connection header should be close")
+	}
+
+	if res.Code != 500 {
+		t.Errorf("Response http code should be 500")
+	}
+
+	expect := `{"error":"the server encountered a problem and could not process your request"}`
+	if strings.TrimSpace(res.Body.String()) != expect {
+		t.Fatalf("handler returned unexpected body: got %s want %s", res.Body.String(), expect)
+	}
+}
+
+func TestRateLimit(t *testing.T) {
+	app := &application.Application{}
+	app.Config.Limiter.Enabled = true
+	app.Config.Limiter.RPS = 2
+	app.Config.Limiter.Burst = 4
+
+	req := httptest.NewRequest("GET", "/", nil)
+	res := httptest.NewRecorder()
+
+	limiter := app.RateLimit(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+
+	for i := 0; i < app.Config.Limiter.Burst+1; i++ {
+		limiter.ServeHTTP(res, req)
+
+		switch {
+		case i == app.Config.Limiter.Burst:
+			if res.Code != 429 {
+				t.Fatalf("response code http must be 429 at request %d, got %d", i, res.Code)
+			}
+
+			expect := `{"error":"rate limit exceeded"}`
+			if strings.TrimSpace(res.Body.String()) != expect {
+				t.Fatalf("limiter returned unexpected body: got %s want %s", res.Body.String(), expect)
+			}
+		default:
+			if res.Code != 200 {
+				t.Errorf("response code http must be 200 at request %d, got %d", i, res.Code)
+			}
+		}
 	}
 }
