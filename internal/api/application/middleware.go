@@ -169,8 +169,10 @@ func (app *Application) Authenticate(next http.Handler) http.Handler {
 			switch {
 			case errors.Is(err, user.ErrNotFoundUserAndSession):
 				app.NotFoundResponseErr(w, r, err)
+				return
 			default:
 				app.ServerErrorResponse(w, r, err)
+				return
 			}
 		}
 		// create a reusable context for handlers and resolvers
