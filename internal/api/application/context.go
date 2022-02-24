@@ -9,17 +9,17 @@ import (
 type contextKey string
 
 const (
-	userCtxKey = contextKey("user")
+	clientCtxKey = contextKey("client")
 )
 
 // ContextWithUser returns a new User instance added in the context.
-func (app *Application) ContextWithUser(ctx context.Context, user *UserCtx) context.Context {
-	return context.WithValue(ctx, userCtxKey, user)
+func (app *Application) ContextWithClient(ctx context.Context, user *ClientCtx) context.Context {
+	return context.WithValue(ctx, clientCtxKey, user)
 }
 
 // UserFromContext retrieves the User struct from the request context.
-func (app *Application) UserFromContext(ctx context.Context) *UserCtx {
-	u, ok := ctx.Value(userCtxKey).(*UserCtx)
+func (app *Application) ClientFromContext(ctx context.Context) *ClientCtx {
+	u, ok := ctx.Value(clientCtxKey).(*ClientCtx)
 	if !ok {
 		panic("missing user value in request context")
 	}
@@ -27,13 +27,13 @@ func (app *Application) UserFromContext(ctx context.Context) *UserCtx {
 	return u
 }
 
-type UserCtx struct {
-	User   *user.User
-	Client *Client
+type ClientCtx struct {
+	Agent   *Agent
+	User    *user.User
+	Session *user.Session
 }
 
-type Client struct {
-	SessionID string
-	IP        string
-	Agent     string
+type Agent struct {
+	IP    string
+	Agent string
 }

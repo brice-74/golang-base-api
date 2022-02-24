@@ -103,7 +103,7 @@ func (r UserAccountResolver) ShortId() string {
 
 // LoginUserAccount: authenticate a user by returning tokens
 func (r Root) LoginUserAccount(ctx context.Context, params LoginUserAccountParams) (*TokensUserAccountResolver, error) {
-	uctx := r.App.UserFromContext(ctx)
+	uctx := r.App.ClientFromContext(ctx)
 
 	uEntry := user.User{
 		Email:    params.Email,
@@ -139,8 +139,8 @@ func (r Root) LoginUserAccount(ctx context.Context, params LoginUserAccountParam
 		&user.Session{
 			ID:            string(params.SessionID),
 			DeactivatedAt: time.Unix(td.RefreshExp, 0),
-			IP:            uctx.Client.IP,
-			Agent:         uctx.Client.Agent,
+			IP:            uctx.Agent.IP,
+			Agent:         uctx.Agent.Agent,
 			UserID:        uReg.ID,
 		},
 	); err != nil {
@@ -160,7 +160,7 @@ type LoginUserAccountParams struct {
 }
 
 func (r Root) RefreshUserAccount(ctx context.Context, params RefreshUserAccountParams) (*TokensUserAccountResolver, error) {
-	uctx := r.App.UserFromContext(ctx)
+	uctx := r.App.ClientFromContext(ctx)
 	// check token is valid and up to date
 	token, err := application.VerifyToken(params.Token, r.App.Config.JWT.Refresh.Secret)
 	if err != nil {
@@ -195,8 +195,8 @@ func (r Root) RefreshUserAccount(ctx context.Context, params RefreshUserAccountP
 		&user.Session{
 			ID:            s.ID,
 			DeactivatedAt: time.Unix(td.RefreshExp, 0),
-			IP:            uctx.Client.IP,
-			Agent:         uctx.Client.Agent,
+			IP:            uctx.Agent.IP,
+			Agent:         uctx.Agent.Agent,
 			UserID:        s.UserID,
 		},
 	); err != nil {

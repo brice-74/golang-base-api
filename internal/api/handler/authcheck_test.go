@@ -19,12 +19,14 @@ func TestAuthToken(t *testing.T) {
 
 	app := &application.Application{}
 
-	ctx := app.ContextWithUser(req.Context(), &application.UserCtx{
+	ctx := app.ContextWithClient(req.Context(), &application.ClientCtx{
 		User: &user.User{Roles: user.Roles{user.RoleUser}},
-		Client: &application.Client{
-			SessionID: "1234",
-			IP:        "0.0.0.0",
-			Agent:     "agent",
+		Agent: &application.Agent{
+			IP:    "0.0.0.0",
+			Agent: "agent",
+		},
+		Session: &user.Session{
+			ID: "1234",
 		},
 	})
 

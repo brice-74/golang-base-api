@@ -133,7 +133,7 @@ func (app *Application) Authenticate(next http.Handler) http.Handler {
 		// indicates to any cache systems that the response can vary based on the Authorization header.
 		w.Header().Add("Vary", "Authorization")
 		// retrieve request information.
-		var cli = &Client{
+		var a = &Agent{
 			IP:    r.RemoteAddr,
 			Agent: r.UserAgent(),
 		}
@@ -141,7 +141,7 @@ func (app *Application) Authenticate(next http.Handler) http.Handler {
 		var authorizationHeader = r.Header.Get("Authorization")
 		// set an anonymous user in the request is no Authorization header.
 		if authorizationHeader == "" {
-			ctx := app.ContextWithUser(r.Context(), &UserCtx{User: user.AnonymousUser, Client: cli})
+			ctx := app.ContextWithClient(r.Context(), &ClientCtx{User: user.AnonymousUser, Agent: a})
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
@@ -173,12 +173,11 @@ func (app *Application) Authenticate(next http.Handler) http.Handler {
 				app.ServerErrorResponse(w, r, err)
 			}
 		}
-		// set a session id for the context
-		cli.SessionID = s.ID
 		// create a reusable context for handlers and resolvers
-		ctx := app.ContextWithUser(r.Context(), &UserCtx{
-			User:   u,
-			Client: cli,
+		ctx := app.ContextWithClient(r.Context(), &ClientCtx{
+			Agent:   a,
+			User:    u,
+			Session: s,
 		})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

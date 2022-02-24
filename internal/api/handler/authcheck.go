@@ -8,13 +8,13 @@ import (
 
 func AuthToken(app *application.Application) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := app.UserFromContext(r.Context())
+		ctx := app.ClientFromContext(r.Context())
 
 		context := application.Envelope{
 			"Client": application.Envelope{
-				"Session": ctx.Client.SessionID,
-				"Agent":   ctx.Client.Agent,
-				"IP":      ctx.Client.IP,
+				"Session": ctx.Session.ID,
+				"Agent":   ctx.Agent.Agent,
+				"IP":      ctx.Agent.IP,
 			},
 			"Roles": ctx.User.Roles,
 		}

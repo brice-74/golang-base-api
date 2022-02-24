@@ -11,22 +11,24 @@ import (
 func TestContextWithUser(t *testing.T) {
 	app := Application{}
 
-	u := &UserCtx{
+	c := &ClientCtx{
 		User: &user.User{
 			ID: "1234",
 		},
-		Client: &Client{
-			SessionID: "5678",
-			IP:        "0.0.0.0",
-			Agent:     "agent",
+		Agent: &Agent{
+			IP:    "0.0.0.0",
+			Agent: "agent",
+		},
+		Session: &user.Session{
+			ID: "5678",
 		},
 	}
 
-	ctx := app.ContextWithUser(context.Background(), u)
+	ctx := app.ContextWithClient(context.Background(), c)
 
-	got := ctx.Value(userCtxKey)
+	got := ctx.Value(clientCtxKey)
 
-	if diff := cmp.Diff(got, u); diff != "" {
+	if diff := cmp.Diff(got, c); diff != "" {
 		t.Fatal(diff)
 	}
 }
@@ -41,26 +43,28 @@ func TestUserFromContext(t *testing.T) {
 			}
 		}()
 
-		app.UserFromContext(context.Background())
+		app.ClientFromContext(context.Background())
 	})
 
 	t.Run("should return user context", func(t *testing.T) {
-		u := &UserCtx{
+		c := &ClientCtx{
 			User: &user.User{
 				ID: "1234",
 			},
-			Client: &Client{
-				SessionID: "5678",
-				IP:        "0.0.0.0",
-				Agent:     "agent",
+			Agent: &Agent{
+				IP:    "0.0.0.0",
+				Agent: "agent",
+			},
+			Session: &user.Session{
+				ID: "5678",
 			},
 		}
 
-		ctx := context.WithValue(context.Background(), userCtxKey, u)
+		ctx := context.WithValue(context.Background(), clientCtxKey, c)
 
-		got := app.UserFromContext(ctx)
+		got := app.ClientFromContext(ctx)
 
-		if diff := cmp.Diff(got, u); diff != "" {
+		if diff := cmp.Diff(got, c); diff != "" {
 			t.Fatal(diff)
 		}
 	})
