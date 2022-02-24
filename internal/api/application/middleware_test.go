@@ -3,8 +3,6 @@ package application_test
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -12,7 +10,8 @@ import (
 	"github.com/brice-74/golang-base-api/internal/domains/user"
 	"github.com/brice-74/golang-base-api/internal/testutils"
 	"github.com/brice-74/golang-base-api/internal/testutils/factory"
-	"github.com/brice-74/golang-base-api/pkg/jsonlog"
+	"github.com/brice-74/golang-base-api/internal/testutils/mocks"
+	"github.com/brice-74/golang-base-api/internal/testutils/require"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/go-cmp/cmp"
 	"github.com/twinj/uuid"
@@ -92,12 +91,7 @@ func TestEnableCORS(t *testing.T) {
 
 func TestRecoverPanic(t *testing.T) {
 	app := &application.Application{
-		Logger: jsonlog.New(
-			os.Stdout,
-			// Disable logs
-			jsonlog.LevelDisable,
-			jsonlog.Middlewares{},
-		),
+		Logger: mocks.NewLogger(),
 	}
 
 	handlerFunc := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
@@ -118,9 +112,7 @@ func TestRecoverPanic(t *testing.T) {
 	}
 
 	expect := `{"error":"the server encountered a problem and could not process your request"}`
-	if strings.TrimSpace(res.Body.String()) != expect {
-		t.Fatalf("handler returned unexpected body: got %s want %s", res.Body.String(), expect)
-	}
+	require.JSONEqual(t, res.Body.String(), expect)
 }
 
 func TestRateLimit(t *testing.T) {
@@ -144,9 +136,7 @@ func TestRateLimit(t *testing.T) {
 			}
 
 			expect := `{"error":"rate limit exceeded"}`
-			if strings.TrimSpace(res.Body.String()) != expect {
-				t.Fatalf("limiter returned unexpected body: got %s want %s", res.Body.String(), expect)
-			}
+			require.JSONEqual(t, res.Body.String(), expect)
 		default:
 			if res.Code != 200 {
 				t.Errorf("response code http must be 200 at request %d, got %d", i, res.Code)
@@ -160,11 +150,7 @@ func TestAuthenticate(t *testing.T) {
 		db  = testutils.PrepareDB(t)
 		fac = factory.New(t, db)
 		app = &application.Application{
-			Logger: jsonlog.New(
-				os.Stdout,
-				jsonlog.LevelDisable,
-				jsonlog.Middlewares{},
-			),
+			Logger: mocks.NewLogger(),
 			Models: application.NewModels(db),
 		}
 	)
@@ -379,15 +365,10 @@ func TestAuthenticate(t *testing.T) {
 			}
 
 			if tt.expectError != nil {
-				resErr := strings.TrimSpace(res.Body.String())
-				if tt.expectError.code != res.Code || tt.expectError.json != resErr {
-					t.Errorf("got code: %d and error: %s \n expect code: %d and error: %s",
-						res.Code,
-						resErr,
-						tt.expectError.code,
-						tt.expectError.json,
-					)
+				if tt.expectError.code != res.Code {
+					t.Errorf("got code: %d expect code: %d", res.Code, tt.expectError.code)
 				}
+				require.JSONEqual(t, res.Body.String(), tt.expectError.json)
 			}
 		})
 	}
