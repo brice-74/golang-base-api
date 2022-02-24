@@ -169,7 +169,7 @@ func (r Root) RefreshUserAccount(ctx context.Context, params RefreshUserAccountP
 	// extract token claims
 	claims, err := application.ExtractTokenMetadata(token, []application.JwtClaimKey{application.UserIdClaim, application.SessionIdClaim})
 	if err != nil {
-		return nil, err
+		return nil, errors.New("Required claims from token not found")
 	}
 	// get session and verify that user id claim is associated to session id claim
 	_, s, err := r.App.Models.User.GetUserAndSession(claims[application.UserIdClaim], claims[application.SessionIdClaim])

@@ -160,7 +160,7 @@ func (app *Application) Authenticate(next http.Handler) http.Handler {
 		// extract claims
 		claims, err := ExtractTokenMetadata(token, []JwtClaimKey{UserIdClaim, SessionIdClaim})
 		if err != nil {
-			app.InvalidAuthenticationTokenResponse(w, r, err)
+			app.InvalidAuthenticationTokenResponse(w, r, errors.New("Required claims from token not found"))
 			return
 		}
 		// get session and verify that user id claim is associated to session id claim.
