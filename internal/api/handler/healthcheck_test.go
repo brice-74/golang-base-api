@@ -3,11 +3,11 @@ package handler_test
 import (
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/brice-74/golang-base-api/internal/api/application"
 	"github.com/brice-74/golang-base-api/internal/api/handler"
+	"github.com/brice-74/golang-base-api/internal/testutils/require"
 )
 
 func TestHealthcheck(t *testing.T) {
@@ -32,7 +32,5 @@ func TestHealthcheck(t *testing.T) {
 	}
 
 	expected := `{"status":"available","systemInfo":{"environment":"dev"}}`
-	if strings.TrimSpace(rr.Body.String()) != expected {
-		t.Fatalf("handler returned unexpected body: got %s want %s", rr.Body.String(), expected)
-	}
+	require.JSONEqual(t, rr.Body.String(), expected)
 }
