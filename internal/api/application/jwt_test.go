@@ -80,7 +80,12 @@ func TestVerifyToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	badToken, err := jwt.New(jwt.SigningMethodHS384).SignedString([]byte(secret))
+	badMethodToken, err := jwt.New(jwt.SigningMethodHS384).SignedString([]byte(secret))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	badSecretToken, err := jwt.New(jwt.SigningMethodHS256).SignedString([]byte("bad secret"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,8 +107,19 @@ func TestVerifyToken(t *testing.T) {
 	})
 
 	t.Run("Should be signing method error", func(t *testing.T) {
-		_, err := VerifyToken(badToken, secret)
+		_, err := VerifyToken(badMethodToken, secret)
 		expect := errors.New("unexpected signing method: HS384")
+		if err == nil {
+			t.Fatal("nil error")
+		}
+		if err.Error() != expect.Error() {
+			t.Fatalf("Unexpected error got: %s, but expected: %s", err.Error(), expect.Error())
+		}
+	})
+
+	t.Run("Should be signing secret error", func(t *testing.T) {
+		_, err := VerifyToken(badSecretToken, secret)
+		expect := errors.New("signature is invalid")
 		if err == nil {
 			t.Fatal("nil error")
 		}
