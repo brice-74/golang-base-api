@@ -3,12 +3,12 @@ package handler_test
 import (
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/brice-74/golang-base-api/internal/api/application"
 	"github.com/brice-74/golang-base-api/internal/api/handler"
 	"github.com/brice-74/golang-base-api/internal/domains/user"
+	"github.com/brice-74/golang-base-api/internal/testutils/require"
 )
 
 func TestAuthToken(t *testing.T) {
@@ -40,7 +40,5 @@ func TestAuthToken(t *testing.T) {
 	}
 
 	expected := `{"Client":{"Agent":"agent","IP":"0.0.0.0","Session":"1234"},"Roles":["ROLE_USER"]}`
-	if strings.TrimSpace(rr.Body.String()) != expected {
-		t.Fatalf("handler returned unexpected body: got %s want %s", rr.Body.String(), expected)
-	}
+	require.JSONEqual(t, rr.Body.String(), expected)
 }
