@@ -11,9 +11,9 @@ import (
 	"github.com/brice-74/golang-base-api/internal/testutils"
 	"github.com/brice-74/golang-base-api/internal/testutils/factory"
 	"github.com/brice-74/golang-base-api/pkg/validator"
-	"github.com/google/go-cmp/cmp"
 	"github.com/graph-gophers/graphql-go/gqltesting"
 	"github.com/twinj/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func TestRegisterUserAccount(t *testing.T) {
@@ -29,33 +29,99 @@ func TestRegisterUserAccount(t *testing.T) {
 		profilName string = "name"
 	)
 
-	test := &gqltesting.Test{
-		Schema: schema,
-		Query: fmt.Sprintf(`
+	var queryString = func(email, pass, sessionID string) string {
+		return fmt.Sprintf(`
 			mutation {
 				registerUserAccount(input: {
 					email: "%s",
 					password: "%s",
 					profilName: "%s"
 				}) {
+					id
+					createdAt
+					updatedAt
+					active
 					email
-					profilName
+					password
 					roles
+					profilName
+					shortId
 				}
-			}`, email, password, profilName),
-		ExpectedResult: fmt.Sprintf(`
-			{
-				"registerUserAccount": {
-					"email": "%s",
-					"profilName": "%s",
-					"roles": [
-						"ROLE_USER"
-					]
-				}
-			}`, email, profilName),
+			}`, email, pass, sessionID,
+		)
 	}
 
-	gqltesting.RunTest(t, test)
+	tests := []struct {
+		title       string
+		gqltest     *gqltesting.Test
+		expectError *testutils.ExpectResolverError
+	}{
+		{
+			title: "Should insert and return available user",
+			gqltest: &gqltesting.Test{
+				Schema: schema,
+				Query:  queryString(email, password, profilName),
+			},
+		},
+		{
+			title: "Should return database error conflict",
+			gqltest: &gqltesting.Test{
+				Schema: schema,
+				Query:  queryString(email, password, profilName),
+			},
+			expectError: &testutils.ExpectResolverError{
+				Msg: "error [DatabaseOperationError]: Duplicate email",
+				Extensions: map[string]interface{}{
+					"code":       "DatabaseOperationError",
+					"statusCode": 500,
+					"message":    "Duplicate email",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.title, func(t *testing.T) {
+			result := tt.gqltest.Schema.Exec(context.Background(), tt.gqltest.Query, "", nil)
+
+			if tt.expectError != nil {
+				testutils.TestGqlError(t, result.Errors[0], tt.expectError)
+			} else {
+				var res RegisterUserAccountResponse
+
+				data, _ := result.Data.MarshalJSON()
+				if err := json.Unmarshal(data, &res); err != nil {
+					t.Fatal(err)
+				}
+
+				var u = res.RegisterUserAccount
+
+				if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)); err != nil {
+					t.Fatal("incorrect password from resolver")
+				}
+
+				testUserOutput := []struct {
+					field string
+					err   bool
+				}{
+					{field: "ID", err: u.ID == ""},
+					{field: "CreatedAt", err: u.CreatedAt.IsZero()},
+					{field: "UpdatedAt", err: u.UpdatedAt.IsZero()},
+					{field: "DeactivatedAt", err: !u.DeactivatedAt.IsZero()},
+					{field: "Email", err: u.Email != email},
+					{field: "Roles", err: u.Roles[0] != user.RoleUser},
+					{field: "ProfilName", err: u.ProfilName == ""},
+					{field: "ShortId", err: u.ShortId == ""},
+				}
+
+				for _, utest := range testUserOutput {
+					if utest.err {
+						t.Errorf("field output invalid: %s", utest.field)
+					}
+				}
+			}
+		})
+	}
 }
 
 func TestLoginUserAccount(t *testing.T) {
@@ -98,7 +164,7 @@ func TestLoginUserAccount(t *testing.T) {
 	tests := []struct {
 		title       string
 		gqltest     *gqltesting.Test
-		expectError *ExpectResolverError
+		expectError *testutils.ExpectResolverError
 	}{
 		{
 			title: "Should return available tokens",
@@ -115,9 +181,9 @@ func TestLoginUserAccount(t *testing.T) {
 				Context: queryContext,
 				Query:   queryString("bad email", "bad pass", sessionID),
 			},
-			expectError: &ExpectResolverError{
-				msg: "validation error [ValidatorError]",
-				extensions: map[string]interface{}{
+			expectError: &testutils.ExpectResolverError{
+				Msg: "validation error [ValidatorError]",
+				Extensions: map[string]interface{}{
 					"code":       "ValidatorError",
 					"statusCode": 422,
 					"errors": validator.Errors{
@@ -138,9 +204,9 @@ func TestLoginUserAccount(t *testing.T) {
 				Context: queryContext,
 				Query:   queryString("unknow@email.com", strPass, sessionID),
 			},
-			expectError: &ExpectResolverError{
-				msg: "error [NotFoundError]: User not found",
-				extensions: map[string]interface{}{
+			expectError: &testutils.ExpectResolverError{
+				Msg: "error [NotFoundError]: User not found",
+				Extensions: map[string]interface{}{
 					"code":       "NotFoundError",
 					"statusCode": 404,
 					"message":    "User not found",
@@ -154,9 +220,9 @@ func TestLoginUserAccount(t *testing.T) {
 				Context: queryContext,
 				Query:   queryString(u.Email, "IncorrectPass123!", sessionID),
 			},
-			expectError: &ExpectResolverError{
-				msg: "error [Unauthorized]: incorrect password",
-				extensions: map[string]interface{}{
+			expectError: &testutils.ExpectResolverError{
+				Msg: "error [Unauthorized]: incorrect password",
+				Extensions: map[string]interface{}{
 					"code":       "Unauthorized",
 					"statusCode": 401,
 					"message":    "incorrect password",
@@ -170,19 +236,7 @@ func TestLoginUserAccount(t *testing.T) {
 			result := tt.gqltest.Schema.Exec(tt.gqltest.Context, tt.gqltest.Query, "", nil)
 
 			if tt.expectError != nil {
-				qerr := result.Errors[0]
-				if qerr != nil {
-					if qerr.Message != tt.expectError.msg {
-						t.Errorf("expect query error message: %s, got: %s", tt.expectError.msg, qerr.Message)
-					}
-					if tt.expectError.extensions != nil {
-						if diff := cmp.Diff(tt.expectError.extensions, qerr.Extensions); diff != "" {
-							t.Error(diff)
-						}
-					}
-				} else {
-					t.Fatal("resolver error expected but not found")
-				}
+				testutils.TestGqlError(t, result.Errors[0], tt.expectError)
 			} else {
 				var res LoginUserAccountResponse
 
@@ -216,7 +270,6 @@ type LoginUserAccountResponse struct {
 	LoginUserAccount user.Tokens
 }
 
-type ExpectResolverError struct {
-	msg        string
-	extensions map[string]interface{}
+type RegisterUserAccountResponse struct {
+	RegisterUserAccount user.User
 }
