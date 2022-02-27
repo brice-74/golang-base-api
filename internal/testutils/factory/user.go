@@ -4,6 +4,7 @@ import (
 	"github.com/brice-74/golang-base-api/internal/domains/user"
 	"github.com/twinj/uuid"
 	"github.com/ventu-io/go-shortid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func (f Factory) CreateUserAccount(props *user.User) *user.User {
@@ -20,6 +21,13 @@ func (f Factory) CreateUserAccount(props *user.User) *user.User {
 
 	if u.Password == "" {
 		u.Password = f.faker.Internet().Password()
+	}
+
+	if hash, err := bcrypt.GenerateFromPassword([]byte(u.Password), 14); err != nil {
+		f.T.Fatalf("error during hash password: %s", err)
+		return nil
+	} else {
+		u.Password = string(hash)
 	}
 
 	if len(u.Roles) == 0 {
