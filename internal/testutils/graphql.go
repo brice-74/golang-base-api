@@ -1,19 +1,13 @@
 package testutils
 
 import (
-	"database/sql"
-
 	"github.com/brice-74/golang-base-api/internal/api/application"
 	"github.com/brice-74/golang-base-api/internal/api/resolvers"
 	"github.com/brice-74/golang-base-api/internal/api/schema"
 	"github.com/graph-gophers/graphql-go"
 )
 
-func ParseTestSchema(db *sql.DB) *graphql.Schema {
-	app := &application.Application{
-		Models: application.NewModels(db),
-	}
-
+func ParseTestSchema(app *application.Application) *graphql.Schema {
 	return graphql.MustParseSchema(
 		schema.String(),
 		&resolvers.Root{
@@ -21,10 +15,3 @@ func ParseTestSchema(db *sql.DB) *graphql.Schema {
 		},
 	)
 }
-
-/* func ParseTestSchemaWithCustomRoot(root *resolvers.Root) *graphql.Schema {
-	return graphql.MustParseSchema(
-		schema.String(),
-		root,
-	)
-} */
