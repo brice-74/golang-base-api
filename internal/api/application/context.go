@@ -9,17 +9,17 @@ import (
 type contextKey string
 
 const (
-	clientCtxKey = contextKey("client")
+	ClientCtxKey = contextKey("client")
 )
 
 // ContextWithUser returns a new User instance added in the context.
 func (app *Application) ContextWithClient(ctx context.Context, user *ClientCtx) context.Context {
-	return context.WithValue(ctx, clientCtxKey, user)
+	return context.WithValue(ctx, ClientCtxKey, user)
 }
 
 // UserFromContext retrieves the User struct from the request context.
 func (app *Application) ClientFromContext(ctx context.Context) *ClientCtx {
-	u, ok := ctx.Value(clientCtxKey).(*ClientCtx)
+	u, ok := ctx.Value(ClientCtxKey).(*ClientCtx)
 	if !ok {
 		panic("missing user value in request context")
 	}

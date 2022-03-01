@@ -1,21 +1,22 @@
-package application
+package application_test
 
 import (
 	"context"
 	"testing"
 
+	"github.com/brice-74/golang-base-api/internal/api/application"
 	"github.com/brice-74/golang-base-api/internal/domains/user"
 	"github.com/google/go-cmp/cmp"
 )
 
 func TestContextWithUser(t *testing.T) {
-	app := Application{}
+	app := application.Application{}
 
-	c := &ClientCtx{
+	c := &application.ClientCtx{
 		User: &user.User{
 			ID: "1234",
 		},
-		Agent: &Agent{
+		Agent: &application.Agent{
 			IP:    "0.0.0.0",
 			Agent: "agent",
 		},
@@ -26,7 +27,7 @@ func TestContextWithUser(t *testing.T) {
 
 	ctx := app.ContextWithClient(context.Background(), c)
 
-	got := ctx.Value(clientCtxKey)
+	got := ctx.Value(application.ClientCtxKey)
 
 	if diff := cmp.Diff(got, c); diff != "" {
 		t.Fatal(diff)
@@ -34,7 +35,7 @@ func TestContextWithUser(t *testing.T) {
 }
 
 func TestUserFromContext(t *testing.T) {
-	app := Application{}
+	app := application.Application{}
 
 	t.Run("should panic", func(t *testing.T) {
 		defer func() {
@@ -47,11 +48,11 @@ func TestUserFromContext(t *testing.T) {
 	})
 
 	t.Run("should return user context", func(t *testing.T) {
-		c := &ClientCtx{
+		c := &application.ClientCtx{
 			User: &user.User{
 				ID: "1234",
 			},
-			Agent: &Agent{
+			Agent: &application.Agent{
 				IP:    "0.0.0.0",
 				Agent: "agent",
 			},
@@ -60,7 +61,7 @@ func TestUserFromContext(t *testing.T) {
 			},
 		}
 
-		ctx := context.WithValue(context.Background(), clientCtxKey, c)
+		ctx := context.WithValue(context.Background(), application.ClientCtxKey, c)
 
 		got := app.ClientFromContext(ctx)
 
