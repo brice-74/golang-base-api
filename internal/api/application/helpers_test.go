@@ -2,7 +2,9 @@ package application_test
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -21,8 +23,9 @@ func TestWriteJsonContent(t *testing.T) {
 	}
 
 	tests := []struct {
-		Envelope application.Envelope
-		expected string
+		Envelope    application.Envelope
+		expected    string
+		expectError error
 	}{
 		{
 			Envelope: application.Envelope{"person": payload{1, "John", "Doe"}},
@@ -35,23 +38,41 @@ func TestWriteJsonContent(t *testing.T) {
 			Envelope: application.Envelope{"person": payload{3, "Brice", "Butler"}},
 			expected: `{"person":{"id":3,"firstName":"Brice","lastName":"Butler"}}`,
 		},
+		{
+			Envelope:    application.Envelope{"channel": make(chan int)},
+			expectError: errors.New("json: unsupported type: chan int"),
+		},
+		{
+			Envelope:    application.Envelope{"inf": math.Inf(1)},
+			expectError: errors.New("json: unsupported value: +Inf"),
+		},
 	}
 
 	for _, tt := range tests {
 		w := httptest.NewRecorder()
-
 		err := a.WriteJSON(w, 200, tt.Envelope, nil)
-		if err != nil {
-			t.Fail()
-		}
 
-		body, err := ioutil.ReadAll(w.Body)
-		if err != nil {
-			t.Fail()
-		}
+		if tt.expectError != nil {
+			if err == nil {
+				t.Fatal("got nil error")
+			}
 
-		if strings.TrimSpace(string(body)) != strings.TrimSpace(tt.expected) {
-			t.Errorf("got %s, expected %s", body, tt.expected)
+			if err.Error() != tt.expectError.Error() {
+				t.Errorf("got: %s, expect: %s", err.Error(), tt.expectError.Error())
+			}
+		} else {
+			if err != nil {
+				t.Fail()
+			}
+
+			body, err := ioutil.ReadAll(w.Body)
+			if err != nil {
+				t.Fail()
+			}
+
+			if strings.TrimSpace(string(body)) != strings.TrimSpace(tt.expected) {
+				t.Errorf("got %s, expected %s", body, tt.expected)
+			}
 		}
 	}
 }
