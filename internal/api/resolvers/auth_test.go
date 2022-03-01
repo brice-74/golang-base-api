@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/brice-74/golang-base-api/internal/api/application"
 	"github.com/brice-74/golang-base-api/internal/domains/user"
 	"github.com/brice-74/golang-base-api/internal/testutils"
 	"github.com/brice-74/golang-base-api/internal/testutils/factory"
+	"github.com/brice-74/golang-base-api/internal/testutils/mocks"
 	"github.com/brice-74/golang-base-api/pkg/validator"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/graph-gophers/graphql-go/gqltesting"
 	"github.com/twinj/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -122,6 +125,10 @@ func TestRegisterUserAccount(t *testing.T) {
 			}
 		})
 	}
+}
+
+type RegisterUserAccountResponse struct {
+	RegisterUserAccount user.User
 }
 
 func TestLoginUserAccount(t *testing.T) {
@@ -270,6 +277,162 @@ type LoginUserAccountResponse struct {
 	LoginUserAccount user.Tokens
 }
 
-type RegisterUserAccountResponse struct {
-	RegisterUserAccount user.User
+func TestRefreshUserAccount(t *testing.T) {
+	var (
+		db     = testutils.PrepareDB(t)
+		app    = testutils.NewApplication(db)
+		schema = testutils.ParseTestSchema(app)
+		fac    = factory.New(t, db)
+	)
+
+	var queryString = func(token string) string {
+		return fmt.Sprintf(`
+			mutation {
+				refreshUserAccount(
+					token: "%s"
+				) {
+					access
+					refresh
+				}
+			}`, token,
+		)
+	}
+
+	var queryContext = app.ContextWithClient(context.Background(), &application.ClientCtx{
+		Agent: &application.Agent{
+			IP:    "0.0.0.0",
+			Agent: "agent",
+		},
+	})
+
+	u := fac.CreateUserAccount(&user.User{
+		Email:    "test@test.com",
+		Password: "Test123!",
+	})
+
+	s := fac.CreateUserSession(&user.Session{
+		UserID: u.ID,
+	})
+
+	exp := time.Now().Add(time.Minute * 3)
+
+	sActive := fac.CreateUserSession(&user.Session{
+		DeactivatedAt: exp,
+		UserID:        u.ID,
+	})
+
+	uuid := uuid.NewV4().String()
+	goodClaims := mocks.CreateClaims(u.ID, s.ID, exp)
+	badUuidClaims := mocks.CreateClaims("", "", exp)
+	badIdsClaims := mocks.CreateClaims(uuid, uuid, exp)
+	activeSessionClaims := mocks.CreateClaims(u.ID, sActive.ID, exp)
+
+	goodToken := mocks.CreateToken(t, jwt.SigningMethodHS256, goodClaims, app.Config.JWT.Refresh.Secret)
+	badClaimsToken := mocks.CreateToken(t, jwt.SigningMethodHS256, nil, app.Config.JWT.Refresh.Secret)
+	badUuidToken := mocks.CreateToken(t, jwt.SigningMethodHS256, badUuidClaims, app.Config.JWT.Refresh.Secret)
+	badIdsToken := mocks.CreateToken(t, jwt.SigningMethodHS256, badIdsClaims, app.Config.JWT.Refresh.Secret)
+	activeSessionToken := mocks.CreateToken(t, jwt.SigningMethodHS256, activeSessionClaims, app.Config.JWT.Refresh.Secret)
+
+	tests := []struct {
+		title       string
+		gqltest     *gqltesting.Test
+		expectError *testutils.ExpectResolverError
+	}{
+		{
+			title: "Should return available tokens",
+			gqltest: &gqltesting.Test{
+				Schema:  schema,
+				Context: queryContext,
+				Query:   queryString(goodToken),
+			},
+		},
+		{
+			title: "Should return claims not found from token",
+			gqltest: &gqltesting.Test{
+				Schema:  schema,
+				Context: queryContext,
+				Query:   queryString(badClaimsToken),
+			},
+			expectError: &testutils.ExpectResolverError{
+				Msg: "Required claims from token not found",
+			},
+		},
+		{
+			title: "Should return server error",
+			gqltest: &gqltesting.Test{
+				Schema:  schema,
+				Context: queryContext,
+				Query:   queryString(badUuidToken),
+			},
+			expectError: &testutils.ExpectResolverError{
+				Msg: `error [DatabaseOperationError]: pq: invalid input syntax for type uuid: ""`,
+				Extensions: map[string]interface{}{
+					"code":       "DatabaseOperationError",
+					"statusCode": 500,
+					"message":    `pq: invalid input syntax for type uuid: ""`,
+				},
+			},
+		},
+		{
+			title: "Should return not found",
+			gqltest: &gqltesting.Test{
+				Schema:  schema,
+				Context: queryContext,
+				Query:   queryString(badIdsToken),
+			},
+			expectError: &testutils.ExpectResolverError{
+				Msg: "error [NotFoundError]: User or user session not found",
+				Extensions: map[string]interface{}{
+					"code":       "NotFoundError",
+					"statusCode": 404,
+					"message":    "User or user session not found",
+				},
+			},
+		},
+		{
+			title: "Should return active session",
+			gqltest: &gqltesting.Test{
+				Schema:  schema,
+				Context: queryContext,
+				Query:   queryString(activeSessionToken),
+			},
+			expectError: &testutils.ExpectResolverError{
+				Msg: "error [Unauthorized]: Cannot refresh, a user session is already active",
+				Extensions: map[string]interface{}{
+					"code":       "Unauthorized",
+					"statusCode": 401,
+					"message":    "Cannot refresh, a user session is already active",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.title, func(t *testing.T) {
+			result := tt.gqltest.Schema.Exec(tt.gqltest.Context, tt.gqltest.Query, "", nil)
+
+			if tt.expectError != nil {
+				testutils.TestGqlError(t, result.Errors[0], tt.expectError)
+			} else {
+				var res RefreshUserAccountResponse
+
+				data, _ := result.Data.MarshalJSON()
+				if err := json.Unmarshal(data, &res); err != nil {
+					t.Fatal(err)
+				}
+
+				if _, err := application.VerifyToken(res.RefreshUserAccount.Access, app.Config.JWT.Access.Secret); err != nil {
+					t.Fatalf("Access token verification fail: %s", err.Error())
+				}
+
+				if _, err := application.VerifyToken(res.RefreshUserAccount.Refresh, app.Config.JWT.Refresh.Secret); err != nil {
+					t.Fatalf("Refresh token verification fail: %s", err.Error())
+				}
+			}
+		})
+	}
+}
+
+type RefreshUserAccountResponse struct {
+	RefreshUserAccount user.Tokens
 }
