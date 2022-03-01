@@ -1,4 +1,4 @@
-package application
+package application_test
 
 import (
 	"bytes"
@@ -7,10 +7,12 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/brice-74/golang-base-api/internal/api/application"
 )
 
 func TestWriteJsonContent(t *testing.T) {
-	a := Application{}
+	a := application.Application{}
 
 	type payload struct {
 		ID        int    `json:"id"`
@@ -19,18 +21,18 @@ func TestWriteJsonContent(t *testing.T) {
 	}
 
 	tests := []struct {
-		Envelope Envelope
+		Envelope application.Envelope
 		expected string
 	}{
 		{
-			Envelope: Envelope{"person": payload{1, "John", "Doe"}},
+			Envelope: application.Envelope{"person": payload{1, "John", "Doe"}},
 			expected: `{"person":{"id":1,"firstName":"John","lastName":"Doe"}}`},
 		{
-			Envelope: Envelope{"person": payload{2, "Kenzie", "Warner"}},
+			Envelope: application.Envelope{"person": payload{2, "Kenzie", "Warner"}},
 			expected: `{"person":{"id":2,"firstName":"Kenzie","lastName":"Warner"}}`,
 		},
 		{
-			Envelope: Envelope{"person": payload{3, "Brice", "Butler"}},
+			Envelope: application.Envelope{"person": payload{3, "Brice", "Butler"}},
 			expected: `{"person":{"id":3,"firstName":"Brice","lastName":"Butler"}}`,
 		},
 	}
@@ -55,14 +57,14 @@ func TestWriteJsonContent(t *testing.T) {
 }
 
 func TestWriteJsonStatus(t *testing.T) {
-	a := Application{}
+	a := application.Application{}
 
 	tests := []int{200, 404, 500}
 
 	for _, s := range tests {
 		w := httptest.NewRecorder()
 
-		err := a.WriteJSON(w, s, Envelope{}, nil)
+		err := a.WriteJSON(w, s, application.Envelope{}, nil)
 		if err != nil {
 			t.Fail()
 		}
@@ -75,7 +77,7 @@ func TestWriteJsonStatus(t *testing.T) {
 }
 
 func TestWriteJsonHeaders(t *testing.T) {
-	a := Application{}
+	a := application.Application{}
 
 	h := http.Header{}
 	h.Add("Authorization", "Bearer 123")
@@ -83,7 +85,7 @@ func TestWriteJsonHeaders(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	err := a.WriteJSON(w, 200, Envelope{}, h)
+	err := a.WriteJSON(w, 200, application.Envelope{}, h)
 	if err != nil {
 		t.Fail()
 	}
@@ -97,7 +99,7 @@ func TestWriteJsonHeaders(t *testing.T) {
 }
 
 func TestReadJsonDecode(t *testing.T) {
-	a := Application{}
+	a := application.Application{}
 
 	var input struct {
 		Name string `json:"name"`
@@ -122,7 +124,7 @@ func TestReadJsonDecode(t *testing.T) {
 }
 
 func TestReadJsonError(t *testing.T) {
-	a := Application{}
+	a := application.Application{}
 
 	input := struct {
 		Name string `json:"name"`

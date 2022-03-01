@@ -1,4 +1,4 @@
-package application
+package application_test
 
 import (
 	"errors"
@@ -7,12 +7,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/brice-74/golang-base-api/internal/api/application"
 	"github.com/brice-74/golang-base-api/internal/testutils/mocks"
 	"github.com/brice-74/golang-base-api/internal/testutils/require"
 )
 
 func TestErrorResponse(t *testing.T) {
-	app := Application{}
+	app := application.Application{}
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -28,7 +29,7 @@ func TestErrorResponse(t *testing.T) {
 func TestServerErrorResponse(t *testing.T) {
 	l := mocks.NewLogger()
 
-	app := Application{
+	app := application.Application{
 		Logger: l,
 	}
 
@@ -52,7 +53,7 @@ func TestServerErrorResponse(t *testing.T) {
 }
 
 func TestNotFoundResponse(t *testing.T) {
-	app := Application{}
+	app := application.Application{}
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -70,7 +71,7 @@ func TestNotFoundResponse(t *testing.T) {
 }
 
 func TestMethodNotAllowedResponse(t *testing.T) {
-	app := Application{}
+	app := application.Application{}
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -88,7 +89,7 @@ func TestMethodNotAllowedResponse(t *testing.T) {
 }
 
 func TestBadRequestResponse(t *testing.T) {
-	app := Application{}
+	app := application.Application{}
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -108,7 +109,7 @@ func TestBadRequestResponse(t *testing.T) {
 }
 
 func TestFailedValidationResponse(t *testing.T) {
-	app := Application{}
+	app := application.Application{}
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -126,7 +127,7 @@ func TestFailedValidationResponse(t *testing.T) {
 }
 
 func TestInvalidAuthenticationTokenResponse(t *testing.T) {
-	app := Application{}
+	app := application.Application{}
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -148,7 +149,7 @@ func TestInvalidAuthenticationTokenResponse(t *testing.T) {
 }
 
 func TestAuthenticationRequiredResponse(t *testing.T) {
-	app := Application{}
+	app := application.Application{}
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -166,7 +167,7 @@ func TestAuthenticationRequiredResponse(t *testing.T) {
 }
 
 func TestForbiddenResponse(t *testing.T) {
-	app := Application{}
+	app := application.Application{}
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -184,7 +185,7 @@ func TestForbiddenResponse(t *testing.T) {
 }
 
 func TestRateLimitExceededResponse(t *testing.T) {
-	app := Application{}
+	app := application.Application{}
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
