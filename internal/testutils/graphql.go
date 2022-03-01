@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/brice-74/golang-base-api/internal/api/application"
+	"github.com/brice-74/golang-base-api/internal/api/handler"
 	"github.com/brice-74/golang-base-api/internal/api/resolvers"
 	"github.com/brice-74/golang-base-api/internal/api/schema"
 	"github.com/google/go-cmp/cmp"
@@ -12,11 +13,14 @@ import (
 )
 
 func ParseTestSchema(app *application.Application) *graphql.Schema {
+	opts := []graphql.SchemaOpt{graphql.Logger(handler.Logger{App: app})}
+
 	return graphql.MustParseSchema(
 		schema.String(),
 		&resolvers.Root{
 			App: app,
 		},
+		opts...,
 	)
 }
 

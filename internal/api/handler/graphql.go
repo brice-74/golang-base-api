@@ -16,7 +16,7 @@ import (
 
 // GraphQL is the main entrypoint for queries and mutations.
 func GraphQL(app *application.Application) http.HandlerFunc {
-	opts := []graphql.SchemaOpt{graphql.Logger(logger{app: app})}
+	opts := []graphql.SchemaOpt{graphql.Logger(Logger{App: app})}
 
 	s := graphql.MustParseSchema(
 		schema.String(),
@@ -33,15 +33,15 @@ func GraphQL(app *application.Application) http.HandlerFunc {
 }
 
 // logger for GraphQL
-type logger struct {
-	app *application.Application
+type Logger struct {
+	App *application.Application
 }
 
 // LogPanic is used to log recovered panic values that occur during query execution.
-func (l logger) LogPanic(ctx context.Context, value interface{}) {
+func (l Logger) LogPanic(ctx context.Context, value interface{}) {
 	const size = 64 << 10
 	buf := make([]byte, size)
 	buf = buf[:runtime.Stack(buf, false)]
 	err := fmt.Errorf("graphql: panic occurred: %v\n%s\ncontext: %v", value, buf, ctx)
-	l.app.Logger.PrintError(err, nil)
+	l.App.Logger.PrintError(err, nil)
 }
