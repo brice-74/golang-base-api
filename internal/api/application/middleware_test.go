@@ -157,43 +157,15 @@ func TestAuthenticate(t *testing.T) {
 
 	app.Config.JWT.Access.Secret = "secret"
 
-	var createToken = func(t *testing.T, method *jwt.SigningMethodHMAC, claims jwt.MapClaims, secret string) string {
-		to := jwt.NewWithClaims(method, claims)
-		toStr, err := to.SignedString([]byte(secret))
-		if err != nil {
-			t.Fatalf("error during jwt token creation: %s", err.Error())
-		}
-		return toStr
-	}
-
 	u := fac.CreateUserAccount(nil)
 	s := fac.CreateUserSession(&user.Session{
 		UserID: u.ID,
 	})
 
-	goodClaims := jwt.MapClaims{
-		string(application.SessionIdClaim): s.ID,
-		string(application.UserIdClaim):    u.ID,
-		string(application.ExpireClaim):    time.Now().Add(time.Minute * 3).Unix(),
-	}
-
-	expClaims := jwt.MapClaims{
-		string(application.SessionIdClaim): s.ID,
-		string(application.UserIdClaim):    u.ID,
-		string(application.ExpireClaim):    time.Time{}.Unix(),
-	}
-
-	randomIdsClaims := jwt.MapClaims{
-		string(application.SessionIdClaim): uuid.NewV4().String(),
-		string(application.UserIdClaim):    uuid.NewV4().String(),
-		string(application.ExpireClaim):    time.Now().Add(time.Minute * 3).Unix(),
-	}
-
-	badIdsClaims := jwt.MapClaims{
-		string(application.SessionIdClaim): "",
-		string(application.UserIdClaim):    "",
-		string(application.ExpireClaim):    time.Now().Add(time.Minute * 3).Unix(),
-	}
+	goodClaims := mocks.CreateClaims(u.ID, s.ID, time.Now().Add(time.Minute*3))
+	expClaims := mocks.CreateClaims("", "", time.Time{})
+	randomIdsClaims := mocks.CreateClaims(uuid.NewV4().String(), uuid.NewV4().String(), time.Now().Add(time.Minute*3))
+	badIdsClaims := mocks.CreateClaims("", "", time.Now().Add(time.Minute*3))
 
 	a := &application.Agent{
 		IP:    "0.0.0.0",
@@ -215,7 +187,7 @@ func TestAuthenticate(t *testing.T) {
 		{
 			title: "should return context with session",
 			headers: map[string]string{
-				"Authorization": "Bearer " + createToken(t, jwt.SigningMethodHS256, goodClaims, app.Config.JWT.Access.Secret),
+				"Authorization": "Bearer " + mocks.CreateToken(t, jwt.SigningMethodHS256, goodClaims, app.Config.JWT.Access.Secret),
 			},
 			expectedHeaders: map[string]string{
 				"Vary": "Authorization",
@@ -253,7 +225,7 @@ func TestAuthenticate(t *testing.T) {
 		{
 			title: "should return unexpected signing method",
 			headers: map[string]string{
-				"Authorization": "Bearer " + createToken(t, jwt.SigningMethodHS384, goodClaims, app.Config.JWT.Access.Secret),
+				"Authorization": "Bearer " + mocks.CreateToken(t, jwt.SigningMethodHS384, goodClaims, app.Config.JWT.Access.Secret),
 			},
 			expectedHeaders: map[string]string{
 				"Vary":          "Authorization",
@@ -267,7 +239,7 @@ func TestAuthenticate(t *testing.T) {
 		{
 			title: "should return expired token",
 			headers: map[string]string{
-				"Authorization": "Bearer " + createToken(t, jwt.SigningMethodHS256, expClaims, app.Config.JWT.Access.Secret),
+				"Authorization": "Bearer " + mocks.CreateToken(t, jwt.SigningMethodHS256, expClaims, app.Config.JWT.Access.Secret),
 			},
 			expectedHeaders: map[string]string{
 				"Vary":          "Authorization",
@@ -281,7 +253,7 @@ func TestAuthenticate(t *testing.T) {
 		{
 			title: "should return invalid signature token",
 			headers: map[string]string{
-				"Authorization": "Bearer " + createToken(t, jwt.SigningMethodHS256, nil, "bad secret"),
+				"Authorization": "Bearer " + mocks.CreateToken(t, jwt.SigningMethodHS256, nil, "bad secret"),
 			},
 			expectedHeaders: map[string]string{
 				"Vary":          "Authorization",
@@ -295,7 +267,7 @@ func TestAuthenticate(t *testing.T) {
 		{
 			title: "should return claims not found from token",
 			headers: map[string]string{
-				"Authorization": "Bearer " + createToken(t, jwt.SigningMethodHS256, nil, app.Config.JWT.Access.Secret),
+				"Authorization": "Bearer " + mocks.CreateToken(t, jwt.SigningMethodHS256, nil, app.Config.JWT.Access.Secret),
 			},
 			expectedHeaders: map[string]string{
 				"Vary":          "Authorization",
@@ -309,7 +281,7 @@ func TestAuthenticate(t *testing.T) {
 		{
 			title: "should return not found",
 			headers: map[string]string{
-				"Authorization": "Bearer " + createToken(t, jwt.SigningMethodHS256, randomIdsClaims, app.Config.JWT.Access.Secret),
+				"Authorization": "Bearer " + mocks.CreateToken(t, jwt.SigningMethodHS256, randomIdsClaims, app.Config.JWT.Access.Secret),
 			},
 			expectedHeaders: map[string]string{
 				"Vary": "Authorization",
@@ -322,7 +294,7 @@ func TestAuthenticate(t *testing.T) {
 		{
 			title: "should return server error",
 			headers: map[string]string{
-				"Authorization": "Bearer " + createToken(t, jwt.SigningMethodHS256, badIdsClaims, app.Config.JWT.Access.Secret),
+				"Authorization": "Bearer " + mocks.CreateToken(t, jwt.SigningMethodHS256, badIdsClaims, app.Config.JWT.Access.Secret),
 			},
 			expectedHeaders: map[string]string{
 				"Vary": "Authorization",
