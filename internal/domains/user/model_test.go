@@ -44,21 +44,34 @@ func TestInsertRegisteredUserAccount(t *testing.T) {
 		ShortId:    "shortid",
 	}
 
-	if err := m.InsertRegisteredUserAccount(u); err != nil {
-		t.Fatalf("got an error during insert user execution: %s", err)
-	}
+	t.Run("should insert user", func(t *testing.T) {
+		if err := m.InsertRegisteredUserAccount(u); err != nil {
+			t.Fatalf("got an error during insert user execution: %s", err)
+		}
 
-	if u.ID == "" {
-		t.Error("got id zero value instead of a generated uuid")
-	}
+		if u.ID == "" {
+			t.Error("got id zero value instead of a generated uuid")
+		}
 
-	if u.CreatedAt.IsZero() {
-		t.Error("got CreatedAt zero value instead of a real date")
-	}
+		if u.CreatedAt.IsZero() {
+			t.Error("got CreatedAt zero value instead of a real date")
+		}
 
-	if u.UpdatedAt.IsZero() {
-		t.Error("got UpdatedAt zero value instead of a real date")
-	}
+		if u.UpdatedAt.IsZero() {
+			t.Error("got UpdatedAt zero value instead of a real date")
+		}
+	})
+
+	t.Run("should return duplicate user error", func(t *testing.T) {
+		err := m.InsertRegisteredUserAccount(u)
+		if err == nil {
+			t.Fatal("got nil error, expect available error")
+		}
+
+		if err.Error() != user.ErrDuplicateEmail.Error() {
+			t.Fatalf("got: %s, expect: %s", err.Error(), user.ErrDuplicateEmail.Error())
+		}
+	})
 }
 
 func TestInsertOrUpdateUserSession(t *testing.T) {
@@ -100,14 +113,28 @@ func TestGetById(t *testing.T) {
 
 	u := fac.CreateUserAccount(nil)
 
-	got, err := m.GetById(u.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Run("should find user", func(t *testing.T) {
+		got, err := m.GetById(u.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	if diff := cmp.Diff(u, got); diff != "" {
-		t.Fatal(diff)
-	}
+		if diff := cmp.Diff(u, got); diff != "" {
+			t.Fatal(diff)
+		}
+	})
+
+	t.Run("shouldn't find user", func(t *testing.T) {
+		_, err := m.GetById(uuid.NewV4().String())
+
+		if err == nil {
+			t.Fatal("got nil error, expect available error")
+		}
+
+		if err.Error() != user.ErrNotFoundUser.Error() {
+			t.Fatalf("got: %s, expect: %s", err.Error(), user.ErrNotFoundUser.Error())
+		}
+	})
 }
 
 func TestGetByEmail(t *testing.T) {
@@ -119,14 +146,28 @@ func TestGetByEmail(t *testing.T) {
 
 	u := fac.CreateUserAccount(nil)
 
-	got, err := m.GetByEmail(u.Email)
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Run("should find user", func(t *testing.T) {
+		got, err := m.GetByEmail(u.Email)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	if diff := cmp.Diff(u, got); diff != "" {
-		t.Fatal(diff)
-	}
+		if diff := cmp.Diff(u, got); diff != "" {
+			t.Fatal(diff)
+		}
+	})
+
+	t.Run("shouldn't find user", func(t *testing.T) {
+		_, err := m.GetByEmail("test@test.com")
+
+		if err == nil {
+			t.Fatal("got nil error, expect available error")
+		}
+
+		if err.Error() != user.ErrNotFoundUser.Error() {
+			t.Fatalf("got: %s, expect: %s", err.Error(), user.ErrNotFoundUser.Error())
+		}
+	})
 }
 
 func TestGetSessionByID(t *testing.T) {
@@ -160,16 +201,30 @@ func TestGetUserAndSession(t *testing.T) {
 		UserID: u.ID,
 	})
 
-	gotu, gots, err := m.GetUserAndSession(u.ID, s.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Run("should find user and session", func(t *testing.T) {
+		gotu, gots, err := m.GetUserAndSession(u.ID, s.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	if diff := cmp.Diff(u, gotu); diff != "" {
-		t.Fatal(diff)
-	}
+		if diff := cmp.Diff(u, gotu); diff != "" {
+			t.Fatal(diff)
+		}
 
-	if diff := cmp.Diff(s, gots); diff != "" {
-		t.Fatal(diff)
-	}
+		if diff := cmp.Diff(s, gots); diff != "" {
+			t.Fatal(diff)
+		}
+	})
+
+	t.Run("shouldn't find user and session", func(t *testing.T) {
+		_, _, err := m.GetUserAndSession(u.ID, uuid.NewV4().String())
+
+		if err == nil {
+			t.Fatal("got nil error, expect available error")
+		}
+
+		if err.Error() != user.ErrNotFoundUserAndSession.Error() {
+			t.Fatalf("got: %s, expect: %s", err.Error(), user.ErrNotFoundUserAndSession.Error())
+		}
+	})
 }
