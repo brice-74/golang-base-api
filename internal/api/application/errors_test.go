@@ -154,10 +154,11 @@ func TestAuthenticationRequiredResponse(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 
-	app.AuthenticationRequiredResponse(w, r, nil)
+	msg := "error message"
+	app.AuthenticationRequiredResponse(w, r, errors.New(msg))
 
 	got := w.Body.String()
-	expected := `{"error":"you must be authenticated to access this resource"}`
+	expected := `{"error":"` + msg + `"}`
 
 	require.JSONEqual(t, got, expected)
 
@@ -172,10 +173,11 @@ func TestForbiddenResponse(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 
-	app.ForbiddenResponse(w, r, nil)
+	msg := "error message"
+	app.ForbiddenResponse(w, r, errors.New(msg))
 
 	got := w.Body.String()
-	expected := `{"error":"your don't have the right to access this resource"}`
+	expected := `{"error":"` + msg + `"}`
 
 	require.JSONEqual(t, got, expected)
 
