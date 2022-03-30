@@ -60,11 +60,6 @@ type RegisterUserAccountInput struct {
 	ProfilName string
 }
 
-type UserAccountResolver struct {
-	app  *application.Application
-	user user.User
-}
-
 func (r UserAccountResolver) ID() graphql.ID {
 	return graphql.ID(r.user.ID)
 }

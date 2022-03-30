@@ -3,6 +3,7 @@ scalar Time
 type Query {
   queryCheck: String!
   queryPanic(panic: Boolean!): String!
+  me: UserAccount!
 }
 
 type UserAccount {
