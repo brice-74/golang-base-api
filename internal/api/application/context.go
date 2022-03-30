@@ -12,12 +12,12 @@ const (
 	ClientCtxKey = contextKey("client")
 )
 
-// ContextWithUser returns a new User instance added in the context.
+// ContextWithClient returns a new ClientCtx instance added in the context.
 func (app *Application) ContextWithClient(ctx context.Context, user *ClientCtx) context.Context {
 	return context.WithValue(ctx, ClientCtxKey, user)
 }
 
-// UserFromContext retrieves the User struct from the request context.
+// ClientFromContext retrieves the ClientCtx struct from the request context.
 func (app *Application) ClientFromContext(ctx context.Context) *ClientCtx {
 	u, ok := ctx.Value(ClientCtxKey).(*ClientCtx)
 	if !ok {
