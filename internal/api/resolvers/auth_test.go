@@ -316,22 +316,15 @@ func TestRefreshUserAccount(t *testing.T) {
 
 	exp := time.Now().Add(time.Minute * 3)
 
-	sActive := fac.CreateUserSession(&user.Session{
-		DeactivatedAt: exp,
-		UserID:        u.ID,
-	})
-
 	uuid := uuid.NewV4().String()
 	goodClaims := mocks.CreateClaims(u.ID, s.ID, exp)
 	badUuidClaims := mocks.CreateClaims("", "", exp)
 	badIdsClaims := mocks.CreateClaims(uuid, uuid, exp)
-	activeSessionClaims := mocks.CreateClaims(u.ID, sActive.ID, exp)
 
 	goodToken := mocks.CreateToken(t, jwt.SigningMethodHS256, goodClaims, app.Config.JWT.Refresh.Secret)
 	badClaimsToken := mocks.CreateToken(t, jwt.SigningMethodHS256, nil, app.Config.JWT.Refresh.Secret)
 	badUuidToken := mocks.CreateToken(t, jwt.SigningMethodHS256, badUuidClaims, app.Config.JWT.Refresh.Secret)
 	badIdsToken := mocks.CreateToken(t, jwt.SigningMethodHS256, badIdsClaims, app.Config.JWT.Refresh.Secret)
-	activeSessionToken := mocks.CreateToken(t, jwt.SigningMethodHS256, activeSessionClaims, app.Config.JWT.Refresh.Secret)
 
 	tests := []struct {
 		title       string
@@ -386,22 +379,6 @@ func TestRefreshUserAccount(t *testing.T) {
 					"code":       "NotFoundError",
 					"statusCode": 404,
 					"message":    "User or user session not found",
-				},
-			},
-		},
-		{
-			title: "Should return active session",
-			gqltest: &gqltesting.Test{
-				Schema:  schema,
-				Context: queryContext,
-				Query:   queryString(activeSessionToken),
-			},
-			expectError: &testutils.ExpectResolverError{
-				Msg: "error [Unauthorized]: Cannot refresh, a user session is already active",
-				Extensions: map[string]interface{}{
-					"code":       "Unauthorized",
-					"statusCode": 401,
-					"message":    "Cannot refresh, a user session is already active",
 				},
 			},
 		},

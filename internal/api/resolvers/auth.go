@@ -176,10 +176,6 @@ func (r Root) RefreshUserAccount(ctx context.Context, params RefreshUserAccountP
 			return nil, resolverErrDatabaseOperation(err)
 		}
 	}
-	// check if active session exist
-	if s.IsActive() {
-		return nil, resolverErrUnauthorized(errors.New("Cannot refresh, a user session is already active"))
-	}
 	// create new tokens
 	td, err := r.App.CreateTokens(claims[application.UserIdClaim], claims[application.SessionIdClaim])
 	if err != nil {

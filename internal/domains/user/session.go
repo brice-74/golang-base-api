@@ -1,6 +1,8 @@
 package user
 
-import "time"
+import (
+	"time"
+)
 
 type Session struct {
 	ID            string
@@ -10,8 +12,4 @@ type Session struct {
 	IP            string
 	Agent         string
 	UserID        string
-}
-
-func (s *Session) IsActive() bool {
-	return s.DeactivatedAt.After(time.Now())
 }
