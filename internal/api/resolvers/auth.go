@@ -60,42 +60,6 @@ type RegisterUserAccountInput struct {
 	ProfilName string
 }
 
-func (r UserAccountResolver) ID() graphql.ID {
-	return graphql.ID(r.user.ID)
-}
-
-func (r UserAccountResolver) CreatedAt() graphql.Time {
-	return graphql.Time{Time: r.user.CreatedAt}
-}
-
-func (r UserAccountResolver) UpdatedAt() graphql.Time {
-	return graphql.Time{Time: r.user.UpdatedAt}
-}
-
-func (r UserAccountResolver) Active() bool {
-	return r.user.DeactivatedAt.IsZero()
-}
-
-func (r UserAccountResolver) Email() string {
-	return r.user.Email
-}
-
-func (r UserAccountResolver) Password() string {
-	return r.user.Password
-}
-
-func (r UserAccountResolver) Roles() user.Roles {
-	return r.user.Roles
-}
-
-func (r UserAccountResolver) ProfilName() string {
-	return r.user.ProfilName
-}
-
-func (r UserAccountResolver) ShortId() string {
-	return r.user.ShortId
-}
-
 // LoginUserAccount: authenticate a user by returning tokens
 func (r Root) LoginUserAccount(ctx context.Context, params LoginUserAccountParams) (*TokensUserAccountResolver, error) {
 	uctx := r.App.ClientFromContext(ctx)

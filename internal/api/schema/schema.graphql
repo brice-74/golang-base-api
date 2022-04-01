@@ -1,9 +1,46 @@
 scalar Time
 
 type Query {
+  # queryCheck: test graphql query.
   queryCheck: String!
+  # queryPanic: check panic handling on query.
   queryPanic(panic: Boolean!): String!
+  # me: get logged user.
   me: UserAccount!
+  # sessionsFromAuth: get all sessions.
+  sessionsFromAuth(
+    offset: Int = 0,
+    limit: Int = 20,
+    sort: String = "deactivatedAt",
+    include: SessionListIncludeFiltersInput = {
+      states: [],
+    },
+  ): SessionList!
+}
+
+type SessionList {
+  total: Int!
+  list: [Session!]!
+}
+
+# SessionListIncludeFiltersInput to filters by including specific data.
+input SessionListIncludeFiltersInput {
+  states: [SessionState!] = []
+}
+
+enum SessionState {
+  ACTIVE
+  EXPIRED
+}
+
+type Session {
+  id: ID!
+  createdAt: Time!
+  updatedAt: Time!
+  active: Boolean! 
+  ip: String!
+  agent: String!
+  userId: String!
 }
 
 type UserAccount {
@@ -31,7 +68,7 @@ enum UserAccountRole {
 type Mutation {
   # registerUserAccount: add a new user.
   registerUserAccount(input: RegisterUserAccountInput!): UserAccount!
-   # loginUserAccount: authenticate a user.
+  # loginUserAccount: authenticate a user.
   loginUserAccount(email: String!, password: String!, sessionID: ID!): Tokens!
   # refreshUserAccount: refresh user authentication.
   refreshUserAccount(token: String!): Tokens!
