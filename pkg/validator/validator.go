@@ -38,8 +38,7 @@ var (
 )
 
 type Validator struct {
-	Errors   Errors
-	KeyError string
+	Errors Errors
 }
 
 type Errors map[string][]string
@@ -55,15 +54,15 @@ func (v *Validator) Valid() bool {
 	return len(v.Errors) == 0
 }
 
-func (v *Validator) AddError(message string) *Validator {
-	v.Errors[v.KeyError] = append(v.Errors[v.KeyError], message)
+func (v *Validator) AddError(key string, message string) *Validator {
+	v.Errors[key] = append(v.Errors[key], message)
 	return nil
 }
 
 // Check adds an error message to the map only if a validation check is not 'ok'.
-func (v *Validator) Check(ok bool, message string) {
+func (v *Validator) Check(ok bool, key string, message string) {
 	if !ok {
-		v.AddError(message)
+		v.AddError(key, message)
 	}
 }
 

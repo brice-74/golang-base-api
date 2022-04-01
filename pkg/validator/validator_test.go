@@ -4,8 +4,6 @@ import "testing"
 
 func TestValid(t *testing.T) {
 	v := New()
-	v.KeyError = "test"
-
 	t.Run("should be valid", func(t *testing.T) {
 		if !v.Valid() {
 			t.Fatalf("got invalid validator without error, expected to be valid")
@@ -13,7 +11,7 @@ func TestValid(t *testing.T) {
 	})
 
 	t.Run("should be invalid", func(t *testing.T) {
-		v.AddError("this is an error")
+		v.AddError("test", "this is an error")
 
 		if v.Valid() {
 			t.Fatalf("got valid validator with and error, expected to be invalid")
@@ -24,9 +22,7 @@ func TestValid(t *testing.T) {
 func TestCheck(t *testing.T) {
 	t.Run("should append an error", func(t *testing.T) {
 		v := New()
-		v.KeyError = "test"
-
-		v.Check(false, "invalid")
+		v.Check(false, "test", "invalid")
 
 		if _, ok := v.Errors["test"]; !ok {
 			t.Fatal("got no error in the list, expected an error")
@@ -35,9 +31,7 @@ func TestCheck(t *testing.T) {
 
 	t.Run("should not append an error", func(t *testing.T) {
 		v := New()
-		v.KeyError = "test"
-
-		v.Check(true, "valid")
+		v.Check(true, "test", "valid")
 
 		if _, ok := v.Errors["test"]; ok {
 			t.Fatal("got an error in the list, expected no error")
