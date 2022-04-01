@@ -13,8 +13,8 @@ const (
 )
 
 // ContextWithClient returns a new ClientCtx instance added in the context.
-func (app *Application) ContextWithClient(ctx context.Context, user *ClientCtx) context.Context {
-	return context.WithValue(ctx, ClientCtxKey, user)
+func (app *Application) ContextWithClient(ctx context.Context, cli *ClientCtx) context.Context {
+	return context.WithValue(ctx, ClientCtxKey, cli)
 }
 
 // ClientFromContext retrieves the ClientCtx struct from the request context.
