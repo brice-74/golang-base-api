@@ -110,7 +110,7 @@ func TestRegisterUserAccount(t *testing.T) {
 					{field: "ID", err: u.ID == ""},
 					{field: "CreatedAt", err: u.CreatedAt.IsZero()},
 					{field: "UpdatedAt", err: u.UpdatedAt.IsZero()},
-					{field: "DeactivatedAt", err: !u.DeactivatedAt.IsZero()},
+					{field: "Active", err: !u.Active},
 					{field: "Email", err: u.Email != email},
 					{field: "Roles", err: u.Roles[0] != user.RoleUser},
 					{field: "ProfilName", err: u.ProfilName == ""},
@@ -128,7 +128,7 @@ func TestRegisterUserAccount(t *testing.T) {
 }
 
 type RegisterUserAccountResponse struct {
-	RegisterUserAccount user.User
+	RegisterUserAccount UserResponse
 }
 
 func TestLoginUserAccount(t *testing.T) {
