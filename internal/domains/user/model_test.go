@@ -7,6 +7,7 @@ import (
 	"github.com/brice-74/golang-base-api/internal/domains/user"
 	"github.com/brice-74/golang-base-api/internal/testutils"
 	"github.com/brice-74/golang-base-api/internal/testutils/factory"
+	"github.com/brice-74/golang-base-api/internal/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/twinj/uuid"
 )
@@ -227,4 +228,70 @@ func TestGetUserAndSession(t *testing.T) {
 			t.Fatalf("got: %s, expect: %s", err.Error(), user.ErrNotFoundUserAndSession.Error())
 		}
 	})
+}
+
+func TestGetAllSession(t *testing.T) {
+	var (
+		db  = testutils.PrepareDB(t)
+		m   = user.Model{DB: db}
+		fac = factory.New(t, db)
+	)
+
+	sActiv := fac.CreateUserSession(&user.Session{
+		DeactivatedAt: time.Now().Add(time.Hour).UTC().Round(time.Second),
+	})
+	sExp := fac.CreateUserSession(&user.Session{
+		DeactivatedAt: time.Date(2021, 0, 0, 0, 0, 0, 0, time.UTC),
+	})
+
+	params := utils.QueryParams{
+		Offset: 0,
+		Limit:  20,
+		Sort:   "deactivatedAt",
+		SortableFields: []string{
+			"deactivatedAt",
+		},
+	}
+
+	tests := []struct {
+		title          string
+		include        user.GetAllSessionIncludeFilters
+		expectSessions []*user.Session
+	}{
+		{
+			title:          "Should return all sessions",
+			include:        user.GetAllSessionIncludeFilters{},
+			expectSessions: []*user.Session{sExp, sActiv},
+		},
+		{
+			title:          "Should return sessions by user id",
+			include:        user.GetAllSessionIncludeFilters{UserIds: []string{sExp.UserID}},
+			expectSessions: []*user.Session{sExp},
+		},
+		{
+			title:          "Should return active sessions",
+			include:        user.GetAllSessionIncludeFilters{States: []user.SessionActivityState{user.SessionActive}},
+			expectSessions: []*user.Session{sActiv},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.title, func(t *testing.T) {
+			sessions, total, err := m.GetAllSession(params, tt.include)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			lens := len(tt.expectSessions)
+
+			if total != lens {
+				t.Errorf("expect total: %d, got: %d", lens, total)
+			}
+
+			if diff := cmp.Diff(tt.expectSessions, sessions); diff != "" {
+				t.Error(diff)
+			}
+		})
+	}
+
 }

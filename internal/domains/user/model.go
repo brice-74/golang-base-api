@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/brice-74/golang-base-api/internal/utils"
 	"github.com/lib/pq"
 )
 
@@ -285,4 +286,89 @@ func (m Model) GetUserAndSession(userID, sessionID string) (*User, *Session, err
 	user.DeactivatedAt = userDeactivatedAt.Time
 
 	return &user, &session, nil
+}
+
+func (m Model) GetAllSession(
+	params utils.QueryParams,
+	include GetAllSessionIncludeFilters,
+) ([]*Session, int, error) {
+	query := fmt.Sprintf(`
+		SELECT
+			count(*) OVER(),
+			s.id,
+			s.created_at,
+			s.updated_at,
+			s.deactivated_at,
+			s.ip,
+			s.agent,
+			s.user_id
+		FROM user_session AS s
+		LEFT JOIN user_account AS u ON u.id = s.user_id
+		WHERE (s.user_id = ANY($1) OR COALESCE($1, '{}') = '{}')
+			AND (
+				('EXPIRED' = ANY($2) AND s.deactivated_at < NOW())
+				OR ('ACTIVE' = ANY($2) AND s.deactivated_at > NOW())
+				OR COALESCE($2, '{}') = '{}'
+			)
+		ORDER BY %s %s
+		LIMIT $3 OFFSET $4`, params.SortColumn(), params.SortDirection())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(
+		ctx,
+		query,
+		pq.Array(include.UserIds),
+		pq.Array(include.States),
+		params.Limit,
+		params.Offset,
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var (
+		ss    []*Session
+		total int
+	)
+
+	for rows.Next() {
+		var s Session
+
+		err := rows.Scan(
+			&total,
+			&s.ID,
+			&s.CreatedAt,
+			&s.UpdatedAt,
+			&s.DeactivatedAt,
+			&s.IP,
+			&s.Agent,
+			&s.UserID,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		ss = append(ss, &s)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return ss, total, nil
+}
+
+type SessionActivityState string
+
+const (
+	SessionActive  SessionActivityState = "ACTIVE"
+	SessionExpired SessionActivityState = "EXPIRED"
+)
+
+type GetAllSessionIncludeFilters struct {
+	States  []SessionActivityState
+	UserIds []string
 }
