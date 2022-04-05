@@ -30,5 +30,5 @@ func Routes(app *application.Application) http.Handler {
 
 	router.HandlerFunc(http.MethodPost, "/graphql", handler.GraphQL(app))
 
-	return app.RecoverPanic(app.EnableCORS(app.RateLimit(app.Authenticate(router))))
+	return app.RecoverPanic(app.EnableCORS(app.Authenticate(app.LogRequest(app.RateLimit(router)))))
 }

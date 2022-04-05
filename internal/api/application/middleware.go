@@ -1,8 +1,12 @@
 package application
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"strings"
@@ -183,4 +187,44 @@ func (app *Application) Authenticate(next http.Handler) http.Handler {
 		})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func (app *Application) LogRequest(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if app.Config.Env != "dev" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		var body QueryBody
+
+		bodyBytes, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			app.Logger.PrintError(err, map[string]string{
+				"log reqest": "error during body parsing",
+			})
+		}
+		// Get query body if exist
+		_ = json.Unmarshal(bodyBytes, &body)
+
+		r.Body.Close()
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+
+		var strToReplace = map[string]string{
+			"\n": "",
+			" ":  "",
+		}
+
+		for old, new := range strToReplace {
+			body.Query = strings.ReplaceAll(body.Query, old, new)
+		}
+
+		log.Println(fmt.Sprintf("\033[36m %s %s \033[35m %s", r.Method, r.RequestURI, body.Query))
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+type QueryBody struct {
+	Query string
 }
