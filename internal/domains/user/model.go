@@ -151,8 +151,7 @@ func (m Model) InsertOrUpdateUserSession(session *Session) error {
 		ON CONFLICT (id) DO UPDATE SET  
 			deactivated_at = $2,
 			ip = $3,
-			agent = $4,
-			user_id = $5
+			agent = $4
 		RETURNING created_at, updated_at`
 
 	args := []interface{}{

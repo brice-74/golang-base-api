@@ -72,6 +72,8 @@ type Mutation {
   loginUserAccount(email: String!, password: String!, sessionID: ID!): Tokens!
   # refreshUserAccount: refresh user authentication.
   refreshUserAccount(token: String!): Tokens!
+  # logoutUserAccount: deactivated session
+  logoutUserAccount: Boolean!
 }
 
 input RegisterUserAccountInput {

@@ -413,3 +413,39 @@ func TestRefreshUserAccount(t *testing.T) {
 type RefreshUserAccountResponse struct {
 	RefreshUserAccount user.Tokens
 }
+
+func TestLogoutUserAccount(t *testing.T) {
+	var (
+		db     = testutils.PrepareDB(t)
+		app    = testutils.NewApplication(db)
+		schema = testutils.ParseTestSchema(app)
+		fac    = factory.New(t, db)
+	)
+
+	u := fac.CreateUserAccount(nil)
+	s := fac.CreateUserSession(&user.Session{
+		UserID: u.ID,
+	})
+
+	gqltesting.RunTest(t, &gqltesting.Test{
+		Context: app.ContextWithClient(context.Background(), &application.ClientCtx{
+			Agent: &application.Agent{
+				IP:    "0.0.0.0",
+				Agent: "agent",
+			},
+			User:    u,
+			Session: s,
+		}),
+		Schema: schema,
+		Query: `
+			mutation {
+				logoutUserAccount
+			}
+		`,
+		ExpectedResult: `
+			{
+				"logoutUserAccount": true
+			}
+		`,
+	})
+}

@@ -180,3 +180,21 @@ func (r TokensUserAccountResolver) Access() string {
 func (r TokensUserAccountResolver) Refresh() string {
 	return r.tokens.Refresh
 }
+
+func (r Root) LogoutUserAccount(ctx context.Context) (bool, error) {
+	c := r.App.ClientFromContext(ctx)
+
+	if err := r.App.Models.User.InsertOrUpdateUserSession(
+		&user.Session{
+			ID:            c.Session.ID,
+			DeactivatedAt: time.Now(),
+			IP:            c.Agent.IP,
+			Agent:         c.Agent.Agent,
+			UserID:        c.User.ID,
+		},
+	); err != nil {
+		return false, resolverErrDatabaseOperation(err)
+	}
+
+	return true, nil
+}
